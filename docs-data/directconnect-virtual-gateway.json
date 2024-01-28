@@ -1,0 +1,9 @@
+{
+	"type": "directconnect-virtual-gateway",
+	"descriptiveType": "Virtual Gateway",
+	"getDescription": "Get a virtual gateway by ID TODO: how?",
+	"listDescription": "List all virtual gateways",
+	"searchDescription": "Search virtual gateways by TODO ??",
+	"group": "AWS",
+	"links": []
+}

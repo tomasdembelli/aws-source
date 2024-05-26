@@ -3,7 +3,6 @@ package integration
 import (
 	"context"
 	"os"
-	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -31,18 +30,24 @@ func testID() string {
 
 }
 
-func TestSetup(t *testing.T) {
+//func TestMain(m *testing.M) {
+//	if !main.shouldRunIntegrationTests() {
+//		log.Println("skipping integration tests.. set RUN_INTEGRATION_TESTS=true to run them")
+//		os.Exit(0)
+//	}
+//	log.Println("running integration tests..")
+//	os.Exit(m.Run())
+//}
+
+func Setup() error {
 	// Create EC2 client
 	ec2Client, err := createEC2Client()
 	if err != nil {
-		t.Fatalf("failed to create EC2 client: %v", err)
+		return err
 	}
 
 	// Create EC2 instance
-	err = createEC2Instance(ec2Client, testID())
-	if err != nil {
-		t.Fatalf("failed to create EC2 instance: %v", err)
-	}
+	return createEC2Instance(ec2Client, testID())
 }
 
 func createEC2Client() (*ec2.Client, error) {

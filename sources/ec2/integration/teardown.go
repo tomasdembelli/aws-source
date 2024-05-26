@@ -2,19 +2,19 @@ package integration
 
 import (
 	"context"
-	"testing"
-
+	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi/types"
+	"log/slog"
 )
 
-func TestTeardown(t *testing.T) {
+func Teardown(logger *slog.Logger) error {
 	cfg, err := config.LoadDefaultConfig(context.Background())
 	if err != nil {
-		t.Fatalf("failed to load configuration, %v", err)
+		return err
 	}
 
 	taggingClient := resourcegroupstaggingapi.NewFromConfig(cfg)
@@ -36,12 +36,17 @@ func TestTeardown(t *testing.T) {
 
 	tagOutput, err := taggingClient.GetResources(context.Background(), tagInput)
 	if err != nil {
-		t.Fatalf("failed to get resources, %v", err)
+		return err
 	}
 
 	if len(tagOutput.ResourceTagMappingList) == 0 {
-		t.Logf("no resources found with the specified tag, %s", "your-tag-key=your-tag-value")
-		return
+		return fmt.Errorf(
+			"no resources found with the specified tags: %s:%s, %s:%s",
+			tagTestTypeKey,
+			tagTestTypeValue,
+			tagTestIDKey,
+			testID(),
+		)
 	}
 
 	// Delete ec2 instances
@@ -57,21 +62,35 @@ func TestTeardown(t *testing.T) {
 		// for now we are assuming the ARN is for an EC2 instance
 
 		// Call the EC2 deletion API
-		_, err := ec2Client.TerminateInstances(context.Background(), &ec2.TerminateInstancesInput{
+		_, err = ec2Client.TerminateInstances(context.Background(), &ec2.TerminateInstancesInput{
 			InstanceIds: []string{arn},
 		})
 		if err != nil {
-			t.Logf("failed to delete EC2 instance %s, %v", arn, err)
+			logger.Error(
+				"failed to delete EC2 instance",
+				slog.String("arn", arn),
+				slog.String("err", err.Error()),
+			)
 			continue
 		}
 		numOfDeletedEC2Instances++
-		t.Logf("deleted EC2 instance %s", arn)
+		logger.Info("deleted EC2 instance", slog.String("arn", arn))
 	}
 
 	if numOfDeletedEC2Instances == 0 {
-		t.Logf("no EC2 instances deleted with the specified tag, %s", "your-tag-key=your-tag-value")
-		return
+		logger.Warn(
+			"no EC2 instances deleted with the specified tags",
+			slog.String(tagTestTypeKey, tagTestTypeValue),
+			slog.String(tagTestIDKey, testID()),
+		)
+		return nil
 	}
 
-	t.Logf("deleted %d EC2 instances with the specified tag, %s", numOfDeletedEC2Instances, "your-tag-key=your-tag-value")
+	logger.Info("deleted EC2 instances with the specified tags",
+		slog.String(tagTestTypeKey, tagTestTypeValue),
+		slog.String(tagTestIDKey, testID()),
+		slog.Int("num_of_deleted_ec2_instances", numOfDeletedEC2Instances),
+	)
+
+	return nil
 }

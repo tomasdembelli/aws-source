@@ -58,12 +58,12 @@ func TestInstanceSource(t *testing.T) {
 		t.Fatalf("expected instance to be healthy, got %v", sdpInstance.GetHealth())
 	}
 
-	val, ok := sdpInstance.GetTags()[tagKey]
+	val, ok := sdpInstance.GetTags()[tagTestTypeKey]
 	if !ok {
-		t.Fatalf("expected tag key %v not found", tagKey)
+		t.Fatalf("expected tag key %v not found", tagTestTypeKey)
 	}
-	if val != tagVal {
-		t.Fatalf("expected tag value %v, got %v", tagVal, val)
+	if val != tagTestTypeValue {
+		t.Fatalf("expected tag value %v, got %v", tagTestTypeValue, val)
 	}
 
 	// TODO: we can add more assertions for other attributes
@@ -82,22 +82,33 @@ func TestInstanceSource(t *testing.T) {
 	if instanceIDFromSearch != instanceID {
 		t.Fatalf("expected instance ID %v, got %v", instanceID, instanceIDFromSearch)
 	}
-}
 
-func getInstanceID(sdpInstances []*sdp.Item) (string, error) {
-	if len(sdpInstances) != 1 {
-		return "", fmt.Errorf("expected 1 instance, got %v", len(sdpInstances))
-	}
+	// Create instance status source
+	instanceStatusSource := ec2overmind.NewInstanceStatusSource(ec2Cli, accountID, region)
 
-	instanceIDAttrVal, err := sdpInstances[0].GetAttributes().Get("instanceId")
+	// Get instance status for the instance id
+	sdpInstanceStatus, err := instanceStatusSource.Get(context.Background(), scope, instanceID, true)
 	if err != nil {
-		return "", fmt.Errorf("failed to get instanceId: %v", err)
+		t.Fatalf("failed to get EC2 instance status: %v", err)
 	}
 
-	instanceID := instanceIDAttrVal.(string)
-	if instanceID == "" {
-		return "", fmt.Errorf("instanceId is empty")
+	// assertions
+	if sdpInstanceStatus.GetHealth() != sdp.Health_HEALTH_OK {
+		t.Fatalf("expected instance status to be healthy, got %v", sdpInstanceStatus.GetHealth())
 	}
 
-	return instanceID, nil
+	if len(sdpInstanceStatus.GetLinkedItems()) != 1 {
+		t.Fatalf("expected 1 linked item, got %v", len(sdpInstanceStatus.GetLinkedItems()))
+	}
+
+	if sdpInstanceStatus.GetLinkedItems()[0].GetItem().GetUniqueAttributeValue() != instanceID {
+		t.Fatalf("expected linked item instance ID %v, got %v", instanceID, sdpInstanceStatus.GetLinkedItems()[0].GetItem().GetUniqueAttributeValue())
+	}
+
+	// TODO: List all the default (comes out of the box with ec2 instance creation) linked items
+	// and create resources for them
+	// Call these resources' Get/List/Search methods with the attributes from linked items
+	// and expect to get the linked item(s).
+	//
+	// We can improve the linked item coverage by manually creating them in the test setup.
 }

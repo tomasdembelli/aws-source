@@ -2,6 +2,7 @@ package integration
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -12,9 +13,23 @@ import (
 )
 
 const (
-	tagKey = "test"
-	tagVal = "ec2-integration"
+	tagTestTypeKey   = "test"
+	tagTestTypeValue = "ec2-integration"
+	tagTestIDKey     = "test-id"
 )
+
+func testID() string {
+	tagTestID, found := os.LookupEnv("INTEGRATION_TEST_ID")
+	if !found {
+		var err error
+		tagTestID, err = os.Hostname()
+		if err != nil {
+			panic("failed to get hostname")
+		}
+	}
+	return tagTestID
+
+}
 
 func TestSetup(t *testing.T) {
 	// Create EC2 client
@@ -24,7 +39,7 @@ func TestSetup(t *testing.T) {
 	}
 
 	// Create EC2 instance
-	err = createEC2Instance(ec2Client)
+	err = createEC2Instance(ec2Client, testID())
 	if err != nil {
 		t.Fatalf("failed to create EC2 instance: %v", err)
 	}
@@ -40,7 +55,7 @@ func createEC2Client() (*ec2.Client, error) {
 	return client, nil
 }
 
-func createEC2Instance(client *ec2.Client) error {
+func createEC2Instance(client *ec2.Client, testID string) error {
 	input := &ec2.RunInstancesInput{
 		ImageId:      aws.String("ami-0abcdef1234567890"), // replace with a free tier AMI
 		InstanceType: types.InstanceTypeT2Nano,
@@ -51,8 +66,12 @@ func createEC2Instance(client *ec2.Client) error {
 				ResourceType: types.ResourceTypeInstance,
 				Tags: []types.Tag{
 					{
-						Key:   aws.String(tagKey),
-						Value: aws.String(tagVal),
+						Key:   aws.String(tagTestTypeKey),
+						Value: aws.String(tagTestTypeValue),
+					},
+					{
+						Key:   aws.String(tagTestIDKey),
+						Value: aws.String(testID),
 					},
 				},
 			},

@@ -24,8 +24,12 @@ func TestTeardown(t *testing.T) {
 	tagInput := &resourcegroupstaggingapi.GetResourcesInput{
 		TagFilters: []types.TagFilter{
 			{
-				Key:    aws.String("your-tag-key"),
-				Values: []string{"your-tag-value"},
+				Key:    aws.String(tagTestTypeKey),
+				Values: []string{tagTestTypeValue},
+			},
+			{
+				Key:    aws.String(tagTestIDKey),
+				Values: []string{testID()},
 			},
 		},
 	}

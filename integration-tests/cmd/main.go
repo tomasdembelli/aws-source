@@ -2,30 +2,28 @@ package main
 
 import (
 	"flag"
+	ec2integration "github.com/overmindtech/aws-source/sources/ec2/integration"
+	ecsintegration "github.com/overmindtech/aws-source/sources/ecs/integration"
 	"log/slog"
 	"os"
 	"strconv"
-	"testing"
-
-	ec2integration "github.com/overmindtech/aws-source/sources/ec2/integration"
-	ecsintegration "github.com/overmindtech/aws-source/sources/ecs/integration"
 )
 
 type TestRunner struct {
 	setup       func() error
-	testsByName map[string]func(*testing.T)
+	testsByName map[string]func(logger *slog.Logger) error
 	teardown    func(logger *slog.Logger) error
 }
 
 var testRunnersByResourceGroup = map[string]TestRunner{
 	"ec2": {
 		setup:       ec2integration.Setup,
-		testsByName: map[string]func(*testing.T){"TestInstanceSource": ec2integration.TestInstanceSource},
+		testsByName: map[string]func(logger *slog.Logger) error{"TestInstanceSource": ec2integration.TestInstanceSource},
 		teardown:    ec2integration.Teardown,
 	},
 	"ecs": {
 		setup:       ecsintegration.Setup,
-		testsByName: map[string]func(*testing.T){"TestServiceSource": ecsintegration.TestServiceSource},
+		testsByName: map[string]func(logger *slog.Logger) error{"TestServiceSource": ecsintegration.TestServiceSource},
 		teardown:    ecsintegration.Teardown,
 	},
 }
@@ -75,15 +73,14 @@ func main() {
 		os.Exit(0)
 	case "run":
 		for testName, testFunc := range testRunner.testsByName {
-			code := testing.RunTests(
-				func(pattern string, str string) (bool, error) {
-					return true, nil
-				},
-				[]testing.InternalTest{{testName, testFunc}},
-			)
+			logger.Info("running integration test", slog.String("name", testName))
+			if err := testFunc(logger); err != nil {
+				logger.Error(
+					"failed to run integration test",
+					slog.String("name", testName),
+					slog.String("err", err.Error()),
+				)
 
-			if !code {
-				logger.Error("test failed", slog.String("name", testName))
 				os.Exit(1)
 			}
 		}

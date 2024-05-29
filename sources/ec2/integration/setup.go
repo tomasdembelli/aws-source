@@ -30,15 +30,6 @@ func testID() string {
 
 }
 
-//func TestMain(m *testing.M) {
-//	if !main.shouldRunIntegrationTests() {
-//		log.Println("skipping integration tests.. set RUN_INTEGRATION_TESTS=true to run them")
-//		os.Exit(0)
-//	}
-//	log.Println("running integration tests..")
-//	os.Exit(m.Run())
-//}
-
 func Setup() error {
 	// Create EC2 client
 	ec2Client, err := createEC2Client()

@@ -3,35 +3,37 @@ package integration
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
-	"testing"
 
 	"github.com/overmindtech/aws-source/sources"
 	ec2overmind "github.com/overmindtech/aws-source/sources/ec2"
 	"github.com/overmindtech/sdp-go"
 )
 
-func TestInstanceSource(t *testing.T) {
+func TestInstanceSource(logger *slog.Logger) error {
+	logger.Info("Running EC2 integration test TestInstanceSource")
+
 	ec2Cli, err := createEC2Client()
 	if err != nil {
-		t.Fatalf("failed to create EC2 client: %v", err)
+		return fmt.Errorf("failed to create EC2 client: %v", err)
 	}
 
 	accountID, found := os.LookupEnv("AWS_ACCOUNT_ID")
 	if !found {
-		t.Fatalf("AWS_ACCOUNT_ID not found")
+		return fmt.Errorf("AWS_ACCOUNT_ID not found")
 	}
 
 	region, found := os.LookupEnv("AWS_REGION")
 	if !found {
-		t.Fatalf("AWS_REGION not found")
+		return fmt.Errorf("AWS_REGION not found")
 	}
 
 	instanceSource := ec2overmind.NewInstanceSource(ec2Cli, accountID, region)
 
 	err = instanceSource.Validate()
 	if err != nil {
-		t.Fatalf("failed to validate EC2 instance source: %v", err)
+		return fmt.Errorf("failed to validate EC2 instance source: %v", err)
 	}
 
 	scope := sources.FormatScope(accountID, region)
@@ -39,31 +41,31 @@ func TestInstanceSource(t *testing.T) {
 	// List instances
 	sdpListInstances, err := instanceSource.List(context.Background(), scope, true)
 	if err != nil {
-		t.Fatalf("failed to list EC2 instances: %v", err)
+		return fmt.Errorf("failed to list EC2 instances: %v", err)
 	}
 
 	instanceID, err := getInstanceID(sdpListInstances)
 	if err != nil {
-		t.Fatalf("failed to get instance ID: %v", err)
+		return fmt.Errorf("failed to get instance ID: %v", err)
 	}
 
 	// Get instance
 	sdpInstance, err := instanceSource.Get(context.Background(), scope, instanceID, true)
 	if err != nil {
-		t.Fatalf("failed to get EC2 instance: %v", err)
+		return fmt.Errorf("failed to get EC2 instance: %v", err)
 	}
 
 	// assertions
 	if sdpInstance.GetHealth() != sdp.Health_HEALTH_OK {
-		t.Fatalf("expected instance to be healthy, got %v", sdpInstance.GetHealth())
+		return fmt.Errorf("expected instance to be healthy, got %v", sdpInstance.GetHealth())
 	}
 
 	val, ok := sdpInstance.GetTags()[tagTestTypeKey]
 	if !ok {
-		t.Fatalf("expected tag key %v not found", tagTestTypeKey)
+		return fmt.Errorf("expected tag key %v not found", tagTestTypeKey)
 	}
 	if val != tagTestTypeValue {
-		t.Fatalf("expected tag value %v, got %v", tagTestTypeValue, val)
+		return fmt.Errorf("expected tag value %v, got %v", tagTestTypeValue, val)
 	}
 
 	// TODO: we can add more assertions for other attributes
@@ -71,16 +73,16 @@ func TestInstanceSource(t *testing.T) {
 	instanceARN := fmt.Sprintf("arn:aws:ec2:%s:%s:instance/%s", region, accountID, instanceID)
 	sdpSearchInstances, err := instanceSource.Search(context.Background(), scope, instanceARN, true)
 	if err != nil {
-		t.Fatalf("failed to search EC2 instances: %v", err)
+		return fmt.Errorf("failed to search EC2 instances: %v", err)
 	}
 
 	instanceIDFromSearch, err := getInstanceID(sdpSearchInstances)
 	if err != nil {
-		t.Fatalf("failed to get instance ID from search: %v", err)
+		return fmt.Errorf("failed to get instance ID from search: %v", err)
 	}
 
 	if instanceIDFromSearch != instanceID {
-		t.Fatalf("expected instance ID %v, got %v", instanceID, instanceIDFromSearch)
+		return fmt.Errorf("expected instance ID %v, got %v", instanceID, instanceIDFromSearch)
 	}
 
 	// Create instance status source
@@ -89,20 +91,20 @@ func TestInstanceSource(t *testing.T) {
 	// Get instance status for the instance id
 	sdpInstanceStatus, err := instanceStatusSource.Get(context.Background(), scope, instanceID, true)
 	if err != nil {
-		t.Fatalf("failed to get EC2 instance status: %v", err)
+		return fmt.Errorf("failed to get EC2 instance status: %v", err)
 	}
 
 	// assertions
 	if sdpInstanceStatus.GetHealth() != sdp.Health_HEALTH_OK {
-		t.Fatalf("expected instance status to be healthy, got %v", sdpInstanceStatus.GetHealth())
+		return fmt.Errorf("expected instance status to be healthy, got %v", sdpInstanceStatus.GetHealth())
 	}
 
 	if len(sdpInstanceStatus.GetLinkedItems()) != 1 {
-		t.Fatalf("expected 1 linked item, got %v", len(sdpInstanceStatus.GetLinkedItems()))
+		return fmt.Errorf("expected 1 linked item, got %v", len(sdpInstanceStatus.GetLinkedItems()))
 	}
 
 	if sdpInstanceStatus.GetLinkedItems()[0].GetItem().GetUniqueAttributeValue() != instanceID {
-		t.Fatalf("expected linked item instance ID %v, got %v", instanceID, sdpInstanceStatus.GetLinkedItems()[0].GetItem().GetUniqueAttributeValue())
+		return fmt.Errorf("expected linked item instance ID %v, got %v", instanceID, sdpInstanceStatus.GetLinkedItems()[0].GetItem().GetUniqueAttributeValue())
 	}
 
 	// TODO: List all the default (comes out of the box with ec2 instance creation) linked items
@@ -111,4 +113,6 @@ func TestInstanceSource(t *testing.T) {
 	// and expect to get the linked item(s).
 	//
 	// We can improve the linked item coverage by manually creating them in the test setup.
+
+	return nil
 }

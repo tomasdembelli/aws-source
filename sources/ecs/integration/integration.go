@@ -3,7 +3,6 @@ package integration
 import (
 	"fmt"
 	"log/slog"
-	"testing"
 )
 
 func Setup() error {
@@ -16,6 +15,7 @@ func Teardown(logger *slog.Logger) error {
 	return nil
 }
 
-func TestServiceSource(t *testing.T) {
-	t.Logf("Running ECS integration test TestServiceSource")
+func TestServiceSource(logger *slog.Logger) error {
+	logger.Info("Running ECS integration test TestServiceSource")
+	return nil
 }

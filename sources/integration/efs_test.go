@@ -3,7 +3,7 @@ package integration
 import "testing"
 
 func TestIntegrationEFS(t *testing.T) {
-	shouldRunIntegrationTests(t, "efs")
+	ShouldRunIntegrationTests(t)
 
 	t.Run("Setup", func(t *testing.T) {
 		t.Logf("Setting up EFS integration tests")

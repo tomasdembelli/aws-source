@@ -1,43 +1,36 @@
 package integration
 
 import (
-	"fmt"
 	"os"
-	"strconv"
-	"strings"
 	"testing"
 )
 
-func shouldRunIntegrationTests(t *testing.T, resourceID string) {
-	runAll, found := os.LookupEnv("RUN_ALL_INTEGRATION_TESTS")
-	if found {
-		shouldRunAll, err := strconv.ParseBool(runAll)
+func Test_testID(t *testing.T) {
+	t.Run("test id is given via env var", func(t *testing.T) {
+		err := os.Setenv("INTEGRATION_TEST_ID", "test-id")
 		if err != nil {
-			t.Skipf("failed to parse RUN_ALL_INTEGRATION_TESTS")
-			return
+			t.Error(err)
 		}
+		defer func() {
+			err := os.Unsetenv("INTEGRATION_TEST_ID")
+			if err != nil {
+				t.Error(err)
+			}
+		}()
 
-		if shouldRunAll {
-			return
-		} else {
-			t.Skipf("skipping integration tests.. set RUN_ALL_INTEGRATION_TESTS=true or individual RUN_%s_INTEGRATION_TESTS=true to run them", strings.ToUpper(resourceID))
+		if got := TestID(); got != "test-id" {
+			t.Errorf("TestID() = %v, want %v", got, "test-id")
 		}
-	}
+	})
 
-	runResource, found := os.LookupEnv(fmt.Sprintf("RUN_%s_INTEGRATION_TESTS", strings.ToUpper(resourceID)))
-	if found {
-		shouldRunResource, err := strconv.ParseBool(runResource)
+	t.Run("test id is not given via env var - defaults to host name", func(t *testing.T) {
+		err := os.Unsetenv("INTEGRATION_TEST_ID")
 		if err != nil {
-			t.Skipf("failed to parse RUN_%s_INTEGRATION_TESTS", strings.ToUpper(resourceID))
-			return
+			t.Error(err)
 		}
 
-		if shouldRunResource {
-			return
-		} else {
-			t.Skipf("skipping integration tests.. set RUN_ALL_INTEGRATION_TESTS=true or individual RUN_%s_INTEGRATION_TESTS=true to run them", strings.ToUpper(resourceID))
+		if got := TestID(); got == "" {
+			t.Errorf("TestID() = %v, want not empty", got)
 		}
-	}
-
-	t.Skipf("skipping integration tests.. set RUN_ALL_INTEGRATION_TESTS=true or individual RUN_%s_INTEGRATION_TESTS=true to run them", strings.ToUpper(resourceID))
+	})
 }

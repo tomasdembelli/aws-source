@@ -3,7 +3,7 @@ package integration
 import "testing"
 
 func TestIntegrationEC2(t *testing.T) {
-	shouldRunIntegrationTests(t, "ec2")
+	ShouldRunIntegrationTests(t)
 
 	t.Run("Setup", func(t *testing.T) {
 		t.Logf("Setting up EC2 integration tests")

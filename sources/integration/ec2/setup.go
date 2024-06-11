@@ -1,36 +1,16 @@
-package integration
+package ec2
 
 import (
 	"context"
-	"os"
-	"time"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/overmindtech/aws-source/sources/integration"
+	"time"
 )
 
-const (
-	tagTestTypeKey   = "test"
-	tagTestTypeValue = "ec2-integration"
-	tagTestIDKey     = "test-id"
-)
-
-func testID() string {
-	tagTestID, found := os.LookupEnv("INTEGRATION_TEST_ID")
-	if !found {
-		var err error
-		tagTestID, err = os.Hostname()
-		if err != nil {
-			panic("failed to get hostname")
-		}
-	}
-
-	return tagTestID
-}
-
-func Setup() error {
+func setup() error {
 	// Create EC2 client
 	ec2Client, err := createEC2Client()
 	if err != nil {
@@ -38,7 +18,7 @@ func Setup() error {
 	}
 
 	// Create EC2 instance
-	return createEC2Instance(ec2Client, testID())
+	return createEC2Instance(ec2Client, integration.TestID())
 }
 
 func createEC2Client() (*ec2.Client, error) {
@@ -60,13 +40,18 @@ func createEC2Instance(client *ec2.Client, testID string) error {
 		TagSpecifications: []types.TagSpecification{
 			{
 				ResourceType: types.ResourceTypeInstance,
+				// TODO: Create a convenience function to add shared tags to the resources
 				Tags: []types.Tag{
 					{
-						Key:   aws.String(tagTestTypeKey),
-						Value: aws.String(tagTestTypeValue),
+						Key:   aws.String(integration.TagTestKey),
+						Value: aws.String(integration.TagTestValue),
 					},
 					{
-						Key:   aws.String(tagTestIDKey),
+						Key:   aws.String(integration.TagTestTypeKey),
+						Value: aws.String(integration.TestName(integration.EC2)),
+					},
+					{
+						Key:   aws.String(integration.TagTestIDKey),
 						Value: aws.String(testID),
 					},
 				},

@@ -33,8 +33,10 @@ func createEC2Client() (*ec2.Client, error) {
 
 func createEC2Instance(client *ec2.Client, testID string) error {
 	input := &ec2.RunInstancesInput{
-		ImageId:      aws.String("ami-0abcdef1234567890"), // replace with a free tier AMI
-		InstanceType: types.InstanceTypeT2Nano,
+		DryRun: aws.Bool(false),
+		// `Subscribe Now` is selected on marketplace UI
+		ImageId:      aws.String("ami-022667efd26192f0b"), // openSUSE Leap 15.2
+		InstanceType: types.InstanceTypeT3Nano,
 		MinCount:     aws.Int32(1),
 		MaxCount:     aws.Int32(1),
 		TagSpecifications: []types.TagSpecification{

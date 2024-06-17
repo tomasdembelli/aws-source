@@ -61,6 +61,34 @@ func instanceOutputMapper(_ context.Context, _ *ec2.Client, scope string, _ *ec2
 				},
 			}
 
+			if instance.State != nil {
+				//   - 0 : pending
+				//
+				//   - 16 : running
+				//
+				//   - 32 : shutting-down
+				//
+				//   - 48 : terminated
+				//
+				//   - 64 : stopping
+				//
+				//   - 80 : stopped
+				switch instance.State.Name {
+				case "running":
+					item.Health = sdp.Health_HEALTH_OK.Enum()
+				case "pending":
+					item.Health = sdp.Health_HEALTH_UNKNOWN.Enum()
+				case "shutting-down":
+					item.Health = sdp.Health_HEALTH_WARNING.Enum()
+				case "terminated":
+					item.Health = sdp.Health_HEALTH_ERROR.Enum()
+				case "stopping":
+					item.Health = sdp.Health_HEALTH_WARNING.Enum()
+				case "stopped":
+					item.Health = sdp.Health_HEALTH_ERROR.Enum()
+				}
+			}
+
 			if instance.IamInstanceProfile != nil {
 				// Prefer the ARN
 				if instance.IamInstanceProfile.Arn != nil {

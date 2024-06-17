@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/overmindtech/aws-source/sources/integration"
+	"github.com/overmindtech/sdp-go"
 	"log/slog"
 	"testing"
 
@@ -42,6 +43,8 @@ func TestInstanceSource(t *testing.T) {
 		t.Fatalf("failed to list EC2 instances: %v", err)
 	}
 
+	sdpListInstances = removeTerminated(sdpListInstances)
+
 	instanceID, err := getInstanceID(sdpListInstances)
 	if err != nil {
 		t.Fatalf("failed to get instance ID: %v", err)
@@ -53,11 +56,18 @@ func TestInstanceSource(t *testing.T) {
 		t.Fatalf("failed to get EC2 instance: %v", err)
 	}
 
-	if sdpInstance.GetUniqueAttribute() != instanceID {
-		t.Fatalf("expected instance ID %v, got %v", instanceID, sdpInstance.GetUniqueAttribute())
+	iID, err := sdpInstance.GetAttributes().Get(sdpInstance.GetUniqueAttribute())
+	if err != nil {
+		t.Fatalf("failed to get instance ID: %v", err)
 	}
 
-	instanceARN := fmt.Sprintf("arn:aws:ec2:%s:%s:instance/%s", awsCfg.AccountID, awsCfg.Region, instanceID)
+	iIDs := iID.(string)
+
+	if iIDs != instanceID {
+		t.Fatalf("expected instance ID %v, got %v", instanceID, iIDs)
+	}
+
+	instanceARN := fmt.Sprintf("arn:aws:ec2:%s:%s:instance/%s", awsCfg.Region, awsCfg.AccountID, instanceID)
 	sdpSearchInstances, err := instanceSource.Search(context.Background(), scope, instanceARN, true)
 	if err != nil {
 		t.Fatalf("failed to search EC2 instances: %v", err)
@@ -71,4 +81,15 @@ func TestInstanceSource(t *testing.T) {
 	if instanceIDFromSearch != instanceID {
 		t.Fatalf("expected instance ID %v, got %v", instanceID, instanceIDFromSearch)
 	}
+}
+
+func removeTerminated(sdpInstances []*sdp.Item) []*sdp.Item {
+	var filteredInstances []*sdp.Item
+	for _, instance := range sdpInstances {
+		if instance.GetHealth() != sdp.Health_HEALTH_OK {
+			continue
+		}
+		filteredInstances = append(filteredInstances, instance)
+	}
+	return filteredInstances
 }

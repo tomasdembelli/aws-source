@@ -58,7 +58,7 @@ func Teardown(ctx context.Context, tagFilter []types.TagFilter) error {
 		case "ec2":
 			// Call the EC2 deletion API
 			_, err := ec2Client.TerminateInstances(context.Background(), &ec2.TerminateInstancesInput{
-				InstanceIds: []string{arn},
+				InstanceIds: []string{strings.Split(arn, "/")[1]},
 			})
 			if err != nil {
 				logger.ErrorContext(ctx,

@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi/types"
+	"github.com/overmindtech/sdp-go"
 	"os"
 	"strconv"
 	"testing"
@@ -38,21 +39,23 @@ func (rg resourceGroup) String() string {
 
 func ShouldRunIntegrationTests(t *testing.T) {
 	run, found := os.LookupEnv("RUN_INTEGRATION_TESTS")
-	if found {
-		shouldRun, err := strconv.ParseBool(run)
-		if err != nil {
-			t.Skipf("failed to parse RUN_INTEGRATION_TESTS")
-			return
-		}
 
-		if !shouldRun {
-			t.Skipf("skipping integration tests.. set RUN_INTEGRATION_TESTS=true to run them")
-
-			return
-		}
+	if !found {
+		t.Skipf("skipping integration tests.. set RUN_INTEGRATION_TESTS=true to run them")
+		return
 	}
 
-	t.Skipf("skipping integration tests.. set RUN_INTEGRATION_TESTS=true to run them")
+	shouldRun, err := strconv.ParseBool(run)
+	if err != nil {
+		t.Skipf("failed to parse RUN_INTEGRATION_TESTS")
+		return
+	}
+
+	if !shouldRun {
+		t.Skipf("skipping integration tests.. set RUN_INTEGRATION_TESTS=true to run them")
+
+		return
+	}
 }
 
 func TestID() string {
@@ -109,4 +112,35 @@ func AWSSettings(ctx context.Context) (*AWSCfg, error) {
 		AccountID: accountID,
 		Region:    cfg.Region,
 	}, nil
+}
+
+func removeUnhealthy(sdpInstances []*sdp.Item) []*sdp.Item {
+	var filteredInstances []*sdp.Item
+	for _, instance := range sdpInstances {
+		if instance.GetHealth() != sdp.Health_HEALTH_OK {
+			continue
+		}
+		filteredInstances = append(filteredInstances, instance)
+	}
+	return filteredInstances
+}
+
+func GetUniqueAttributeValue(uniqueAttrKey string, items []*sdp.Item) (string, error) {
+	items = removeUnhealthy(items)
+
+	if len(items) != 1 {
+		return "", fmt.Errorf("expected 1 item, got %v", len(items))
+	}
+
+	uniqueAttrValue, err := items[0].GetAttributes().Get(uniqueAttrKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to get %s: %v", uniqueAttrKey, err)
+	}
+
+	uniqueAttrValueStr := uniqueAttrValue.(string)
+	if uniqueAttrValueStr == "" {
+		return "", fmt.Errorf("%s is empty", uniqueAttrKey)
+	}
+
+	return uniqueAttrValueStr, nil
 }

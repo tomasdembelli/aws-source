@@ -47,8 +47,12 @@ func ShouldRunIntegrationTests(t *testing.T) {
 
 		if !shouldRun {
 			t.Skipf("skipping integration tests.. set RUN_INTEGRATION_TESTS=true to run them")
+
+			return
 		}
 	}
+
+	t.Skipf("skipping integration tests.. set RUN_INTEGRATION_TESTS=true to run them")
 }
 
 func TestID() string {

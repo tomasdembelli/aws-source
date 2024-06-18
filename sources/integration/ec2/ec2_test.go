@@ -18,7 +18,7 @@ func TestIntegrationEC2(t *testing.T) {
 	})
 
 	t.Run("TestSomeSource", func(t *testing.T) {
-		t.Logf("Running EC2 integration test TestSomeSource")
+		t.Logf("Running EC2 integration tests")
 		TestInstanceSource(t)
 	})
 

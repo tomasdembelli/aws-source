@@ -2,7 +2,7 @@ package integration
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
@@ -15,6 +15,8 @@ import (
 
 func Teardown(ctx context.Context, tagFilter []types.TagFilter) error {
 	logger := slog.Default()
+
+	var errs error
 
 	cfg, err := config.LoadDefaultConfig(context.Background())
 	if err != nil {
@@ -56,20 +58,43 @@ func Teardown(ctx context.Context, tagFilter []types.TagFilter) error {
 
 		switch service {
 		case "ec2":
-			// Call the EC2 deletion API
-			_, err := ec2Client.TerminateInstances(context.Background(), &ec2.TerminateInstancesInput{
-				InstanceIds: []string{strings.Split(arn, "/")[1]},
-			})
-			if err != nil {
-				logger.ErrorContext(ctx,
-					"failed to delete EC2 instance",
-					slog.String("arn", arn),
-					slog.String("err", err.Error()),
-				)
-				continue
-			} else {
-				numOfDeletedEC2Instances++
-				logger.InfoContext(ctx, "deleted EC2 instance", slog.String("arn", arn))
+			switch determineResourceTypeFromARN(arn) {
+			case "instance":
+				instanceID := strings.Split(arn, "/")[1]
+				instance, err := ec2Client.DescribeInstances(context.Background(), &ec2.DescribeInstancesInput{
+					InstanceIds: []string{instanceID},
+				})
+				if err != nil {
+					logger.ErrorContext(ctx,
+						"failed to describe EC2 instance",
+						slog.String("arn", arn),
+						slog.String("err", err.Error()),
+					)
+					errs = errors.Join(errs, err)
+					continue
+				}
+				codeTerminated := int32(48)
+				if aws.ToInt32(instance.Reservations[0].Instances[0].State.Code) == codeTerminated {
+					logger.DebugContext(ctx, "EC2 instance already terminated", slog.String("arn", arn))
+					continue
+				}
+				// Call the EC2 deletion API
+				_, err = ec2Client.TerminateInstances(context.Background(), &ec2.TerminateInstancesInput{
+					InstanceIds: []string{instanceID},
+				})
+				if err != nil {
+					logger.ErrorContext(ctx,
+						"failed to delete EC2 instance",
+						slog.String("arn", arn),
+						slog.String("err", err.Error()),
+					)
+					errs = errors.Join(errs, err)
+				} else {
+					numOfDeletedEC2Instances++
+					logger.InfoContext(ctx, "deleted EC2 instance", slog.String("arn", arn))
+				}
+			default:
+				logger.Warn("Unsupported ec2 resource type: ", determineResourceTypeFromARN(arn))
 			}
 		case "networkmanager":
 			// Determine the specific type of networkmanager resource from the ARN
@@ -91,7 +116,7 @@ func Teardown(ctx context.Context, tagFilter []types.TagFilter) error {
 						slog.String("arn", arn),
 						slog.String("err", err.Error()),
 					)
-					continue
+					errs = errors.Join(errs, err)
 				} else {
 					numOfDeletedNetworkManagerConnectAttachments++
 					logger.InfoContext(
@@ -104,7 +129,7 @@ func Teardown(ctx context.Context, tagFilter []types.TagFilter) error {
 				logger.Warn("Unsupported networkmanager resource type: ", resourceType)
 			}
 		default:
-			fmt.Println("Unsupported service: ", service)
+			logger.Warn("Unsupported service: ", service)
 		}
 	}
 
@@ -113,7 +138,7 @@ func Teardown(ctx context.Context, tagFilter []types.TagFilter) error {
 		slog.Int("num_of_deleted_network_manager_connect_attachments", numOfDeletedNetworkManagerConnectAttachments),
 	)
 
-	return nil
+	return errs
 }
 
 func determineServiceFromARN(arn string) string {

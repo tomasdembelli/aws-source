@@ -2,23 +2,22 @@ package ec2
 
 import (
 	"context"
+	"errors"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/overmindtech/aws-source/sources/integration"
+	"log/slog"
 	"time"
 )
 
-func setup() error {
-	// Create EC2 client
-	ec2Client, err := createEC2Client()
-	if err != nil {
-		return err
-	}
+const instanceSource = "instance"
+
+func setup(ctx context.Context, logger *slog.Logger, client *ec2.Client) error {
 
 	// Create EC2 instance
-	return createEC2Instance(ec2Client, integration.TestID())
+	return createEC2Instance(ctx, logger, client, integration.TestID())
 }
 
 func createEC2Client() (*ec2.Client, error) {
@@ -31,7 +30,22 @@ func createEC2Client() (*ec2.Client, error) {
 	return client, nil
 }
 
-func createEC2Instance(client *ec2.Client, testID string) error {
+func createEC2Instance(ctx context.Context, logger *slog.Logger, client *ec2.Client, testID string) error {
+	// check if a resource with the same tags already exists
+	id, err := findInstanceIDByTags(client)
+	if err != nil {
+		if errors.As(err, new(integration.NotFoundError)) {
+			logger.InfoContext(ctx, "Creating EC2 instance")
+		} else {
+			return err
+		}
+	}
+
+	if id != nil {
+		logger.InfoContext(ctx, "EC2 instance already exists")
+		return nil
+	}
+
 	input := &ec2.RunInstancesInput{
 		DryRun: aws.Bool(false),
 		// `Subscribe Now` is selected on marketplace UI
@@ -43,20 +57,7 @@ func createEC2Instance(client *ec2.Client, testID string) error {
 			{
 				ResourceType: types.ResourceTypeInstance,
 				// TODO: Create a convenience function to add shared tags to the resources
-				Tags: []types.Tag{
-					{
-						Key:   aws.String(integration.TagTestKey),
-						Value: aws.String(integration.TagTestValue),
-					},
-					{
-						Key:   aws.String(integration.TagTestTypeKey),
-						Value: aws.String(integration.TestName(integration.EC2)),
-					},
-					{
-						Key:   aws.String(integration.TagTestIDKey),
-						Value: aws.String(testID),
-					},
-				},
+				Tags: resourceTags(instanceSource, testID),
 			},
 		},
 	}

@@ -9,14 +9,16 @@ import (
 	"github.com/overmindtech/sdp-go"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 )
 
 const (
-	TagTestKey     = "test"
-	TagTestValue   = "true"
-	TagTestIDKey   = "test-id"
-	TagTestTypeKey = "test-type"
+	TagTestKey       = "test"
+	TagTestValue     = "true"
+	TagTestIDKey     = "test-id"
+	TagTestTypeKey   = "test-type"
+	TagResourceIDKey = "resource-id"
 )
 
 type resourceGroup int
@@ -143,4 +145,16 @@ func GetUniqueAttributeValue(uniqueAttrKey string, items []*sdp.Item) (string, e
 	}
 
 	return uniqueAttrValueStr, nil
+}
+
+// ResourceName returns a unique resource name for integration tests
+// I.e., integration-test-networkmanager-global-network-1
+func ResourceName(resourceGroup resourceGroup, resourceName string, additionalAttr ...string) string {
+	name := []string{"integration-test", resourceGroup.String(), resourceName}
+
+	for _, attr := range additionalAttr {
+		name = append(name, attr)
+	}
+
+	return strings.Join(name, "-")
 }

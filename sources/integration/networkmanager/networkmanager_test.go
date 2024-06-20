@@ -3,6 +3,7 @@ package networkmanager
 import (
 	"context"
 	"github.com/overmindtech/aws-source/sources/integration"
+	"log/slog"
 	"testing"
 )
 
@@ -10,9 +11,15 @@ func TestIntegrationNetworkManager(t *testing.T) {
 	integration.ShouldRunIntegrationTests(t)
 
 	ctx := context.Background()
+	logger := slog.Default()
+
+	networkmanagerClient, err := createNetworkManagerClient(ctx)
+	if err != nil {
+		t.Fatalf("Failed to create NetworkManager client: %v", err)
+	}
 
 	t.Run("Setup", func(t *testing.T) {
-		if err := setup(ctx); err != nil {
+		if err := setup(ctx, logger, networkmanagerClient); err != nil {
 			t.Fatalf("Failed to setup NetworkManager integration tests: %v", err)
 		}
 	})
@@ -23,7 +30,7 @@ func TestIntegrationNetworkManager(t *testing.T) {
 	})
 
 	t.Run("Teardown", func(t *testing.T) {
-		if err := integration.Teardown(ctx, integration.TagFilter(integration.NetworkManager)); err != nil {
+		if err := teardown(ctx, logger, networkmanagerClient); err != nil {
 			t.Fatalf("Failed to teardown NetworkManager integration tests: %v", err)
 		}
 	})

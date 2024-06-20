@@ -6,16 +6,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
-	"github.com/aws/aws-sdk-go-v2/service/networkmanager"
 	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi/types"
 	"log/slog"
 	"strings"
 )
 
-func Teardown(ctx context.Context, tagFilter []types.TagFilter) error {
-	logger := slog.Default()
-
+func TeardownRegionalResources(ctx context.Context, logger *slog.Logger, tagFilter []types.TagFilter) error {
 	var errs error
 
 	cfg, err := config.LoadDefaultConfig(context.Background())
@@ -25,7 +22,6 @@ func Teardown(ctx context.Context, tagFilter []types.TagFilter) error {
 
 	taggingClient := resourcegroupstaggingapi.NewFromConfig(cfg)
 	ec2Client := ec2.NewFromConfig(cfg)
-	networkManagerClient := networkmanager.NewFromConfig(cfg)
 
 	// Get resources with the specified tag
 	tagInput := &resourcegroupstaggingapi.GetResourcesInput{
@@ -95,38 +91,6 @@ func Teardown(ctx context.Context, tagFilter []types.TagFilter) error {
 				}
 			default:
 				logger.Warn("Unsupported ec2 resource type: ", determineResourceTypeFromARN(arn))
-			}
-		case "networkmanager":
-			// Determine the specific type of networkmanager resource from the ARN
-			resourceType := determineResourceTypeFromARN(arn)
-
-			switch resourceType {
-			case "connect-attachment":
-				// Call the Network Manager deletion API for ConnectAttachment
-				_, err := networkManagerClient.DeleteAttachment(
-					context.Background(),
-					&networkmanager.DeleteAttachmentInput{
-						AttachmentId: aws.String(arn),
-					},
-				)
-				if err != nil {
-					logger.ErrorContext(
-						ctx,
-						"failed to delete Network Manager ConnectAttachment",
-						slog.String("arn", arn),
-						slog.String("err", err.Error()),
-					)
-					errs = errors.Join(errs, err)
-				} else {
-					numOfDeletedNetworkManagerConnectAttachments++
-					logger.InfoContext(
-						ctx,
-						"deleted Network Manager ConnectAttachment",
-						slog.String("arn", arn),
-					)
-				}
-			default:
-				logger.Warn("Unsupported networkmanager resource type: ", resourceType)
 			}
 		default:
 			logger.Warn("Unsupported service: ", service)

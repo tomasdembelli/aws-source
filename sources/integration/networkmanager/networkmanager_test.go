@@ -24,7 +24,7 @@ func TestIntegrationNetworkManager(t *testing.T) {
 		}
 	})
 
-	t.Run("TestSomeSource", func(t *testing.T) {
+	t.Run("Test Global Network", func(t *testing.T) {
 		t.Logf("Running NetworkManager integration tests")
 		TestGlobalNetworkSource(t)
 	})

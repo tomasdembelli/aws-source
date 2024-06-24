@@ -32,7 +32,7 @@ func createEC2Client() (*ec2.Client, error) {
 
 func createEC2Instance(ctx context.Context, logger *slog.Logger, client *ec2.Client, testID string) error {
 	// check if a resource with the same tags already exists
-	id, err := findInstanceIDByTags(client)
+	id, err := findActiveInstanceIDByTags(client)
 	if err != nil {
 		if errors.As(err, new(integration.NotFoundError)) {
 			logger.InfoContext(ctx, "Creating EC2 instance")

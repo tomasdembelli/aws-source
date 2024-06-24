@@ -49,7 +49,10 @@ func hasTags(tags []types.Tag, requiredTags []types.Tag) bool {
 	return true
 }
 
-func findInstanceIDByTags(client *ec2.Client, additionalAttr ...string) (*string, error) {
+// findActiveInstanceIDByTags finds an instance by tags
+// additionalAttr is a variadic parameter that allows to specify additional attributes to search for
+// it ignores terminated instances
+func findActiveInstanceIDByTags(client *ec2.Client, additionalAttr ...string) (*string, error) {
 	result, err := client.DescribeInstances(context.Background(), &ec2.DescribeInstancesInput{})
 	if err != nil {
 		return nil, err
@@ -57,6 +60,13 @@ func findInstanceIDByTags(client *ec2.Client, additionalAttr ...string) (*string
 
 	for _, reservation := range result.Reservations {
 		for _, instance := range reservation.Instances {
+			// ignore terminated or shutting down instances
+			if instance.State.Name == types.InstanceStateNameTerminated ||
+				instance.State.Name == types.InstanceStateNameShuttingDown {
+				// ignore terminated instances
+				continue
+			}
+
 			if hasTags(instance.Tags, resourceTags(instanceSource, integration.TestID(), additionalAttr...)) {
 				return instance.InstanceId, nil
 			}
@@ -64,4 +74,13 @@ func findInstanceIDByTags(client *ec2.Client, additionalAttr ...string) (*string
 	}
 
 	return nil, integration.NewNotFoundError(integration.ResourceName(integration.EC2, instanceSource, additionalAttr...))
+}
+
+func deleteInstance(ctx context.Context, client *ec2.Client, instanceID string) error {
+	input := &ec2.TerminateInstancesInput{
+		InstanceIds: []string{instanceID},
+	}
+
+	_, err := client.TerminateInstances(ctx, input)
+	return err
 }

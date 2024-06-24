@@ -20,5 +20,5 @@ func teardown(ctx context.Context, logger *slog.Logger, client *networkmanager.C
 		}
 	}
 
-	return deleteGlobalNetwork(client, *globalNetworkID)
+	return deleteGlobalNetwork(ctx, client, *globalNetworkID)
 }

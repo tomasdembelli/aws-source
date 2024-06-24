@@ -44,12 +44,12 @@ func findGlobalNetworkIDByTags(client *networkmanager.Client, additionalAttr ...
 	return nil, integration.NewNotFoundError(integration.ResourceName(integration.NetworkManager, globalNetworkSource, additionalAttr...))
 }
 
-func deleteGlobalNetwork(client *networkmanager.Client, globalNetworkID string) error {
+func deleteGlobalNetwork(ctx context.Context, client *networkmanager.Client, globalNetworkID string) error {
 	input := &networkmanager.DeleteGlobalNetworkInput{
 		GlobalNetworkId: aws.String(globalNetworkID),
 	}
 
-	_, err := client.DeleteGlobalNetwork(context.Background(), input)
+	_, err := client.DeleteGlobalNetwork(ctx, input)
 	return err
 }
 

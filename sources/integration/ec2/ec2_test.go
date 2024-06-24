@@ -12,6 +12,7 @@ func TestIntegrationEC2(t *testing.T) {
 
 	ctx := context.Background()
 	logger := slog.Default()
+
 	ec2Client, err := createEC2Client()
 	if err != nil {
 		t.Fatalf("Failed to create EC2 client: %v", err)
@@ -24,13 +25,13 @@ func TestIntegrationEC2(t *testing.T) {
 		}
 	})
 
-	t.Run("TestSomeSource", func(t *testing.T) {
+	t.Run("Test EC2", func(t *testing.T) {
 		t.Logf("Running EC2 integration tests")
 		TestInstanceSource(t)
 	})
 
 	t.Run("Teardown", func(t *testing.T) {
-		if err := integration.TeardownRegionalResources(ctx, logger, integration.TagFilter(integration.EC2)); err != nil {
+		if err := teardown(ctx, logger, ec2Client); err != nil {
 			t.Fatalf("Failed to teardown EC2 integration tests: %v", err)
 		}
 	})

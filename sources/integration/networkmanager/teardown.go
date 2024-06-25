@@ -11,7 +11,7 @@ import (
 func teardown(ctx context.Context, logger *slog.Logger, client *networkmanager.Client) error {
 	globalNetworkID, err := findGlobalNetworkIDByTags(client)
 	if err != nil {
-		nf := integration.NewNotFoundError(globalNetworkSource)
+		nf := integration.NewNotFoundError(globalNetworkSrc)
 		if errors.As(err, &nf) {
 			logger.WarnContext(ctx, "Global network not found")
 			return nil

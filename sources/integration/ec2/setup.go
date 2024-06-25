@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const instanceSource = "instance"
+const instanceSrc = "instance"
 
 func setup(ctx context.Context, logger *slog.Logger, client *ec2.Client) error {
 
@@ -20,8 +20,8 @@ func setup(ctx context.Context, logger *slog.Logger, client *ec2.Client) error {
 	return createEC2Instance(ctx, logger, client, integration.TestID())
 }
 
-func createEC2Client() (*ec2.Client, error) {
-	cfg, err := config.LoadDefaultConfig(context.Background())
+func createEC2Client(ctx context.Context) (*ec2.Client, error) {
+	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func createEC2Instance(ctx context.Context, logger *slog.Logger, client *ec2.Cli
 			{
 				ResourceType: types.ResourceTypeInstance,
 				// TODO: Create a convenience function to add shared tags to the resources
-				Tags: resourceTags(instanceSource, testID),
+				Tags: resourceTags(instanceSrc, testID),
 			},
 		},
 	}

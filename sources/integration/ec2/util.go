@@ -8,7 +8,7 @@ import (
 	"github.com/overmindtech/aws-source/sources/integration"
 )
 
-func resourceTags(resourceName, testID string, additionalAttr ...string) []types.Tag {
+func resourceTags(resourceName, testID string, nameAdditionalAttr ...string) []types.Tag {
 	return []types.Tag{
 		{
 			Key:   aws.String(integration.TagTestKey),
@@ -16,7 +16,7 @@ func resourceTags(resourceName, testID string, additionalAttr ...string) []types
 		},
 		{
 			Key:   aws.String(integration.TagTestTypeKey),
-			Value: aws.String(integration.TestName(integration.NetworkManager)),
+			Value: aws.String(integration.TestName(integration.EC2)),
 		},
 		{
 			Key:   aws.String(integration.TagTestIDKey),
@@ -24,7 +24,7 @@ func resourceTags(resourceName, testID string, additionalAttr ...string) []types
 		},
 		{
 			Key:   aws.String(integration.TagResourceIDKey),
-			Value: aws.String(integration.ResourceName(integration.EC2, resourceName, additionalAttr...)),
+			Value: aws.String(integration.ResourceName(integration.EC2, resourceName, nameAdditionalAttr...)),
 		},
 	}
 }
@@ -67,13 +67,13 @@ func findActiveInstanceIDByTags(client *ec2.Client, additionalAttr ...string) (*
 				continue
 			}
 
-			if hasTags(instance.Tags, resourceTags(instanceSource, integration.TestID(), additionalAttr...)) {
+			if hasTags(instance.Tags, resourceTags(instanceSrc, integration.TestID(), additionalAttr...)) {
 				return instance.InstanceId, nil
 			}
 		}
 	}
 
-	return nil, integration.NewNotFoundError(integration.ResourceName(integration.EC2, instanceSource, additionalAttr...))
+	return nil, integration.NewNotFoundError(integration.ResourceName(integration.EC2, instanceSrc, additionalAttr...))
 }
 
 func deleteInstance(ctx context.Context, client *ec2.Client, instanceID string) error {

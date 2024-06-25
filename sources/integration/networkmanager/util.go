@@ -36,12 +36,12 @@ func findGlobalNetworkIDByTags(client *networkmanager.Client, additionalAttr ...
 	}
 
 	for _, globalNetwork := range result.GlobalNetworks {
-		if hasTags(globalNetwork.Tags, resourceTags(globalNetworkSource, integration.TestID(), additionalAttr...)) {
+		if hasTags(globalNetwork.Tags, resourceTags(globalNetworkSrc, integration.TestID(), additionalAttr...)) {
 			return globalNetwork.GlobalNetworkId, nil
 		}
 	}
 
-	return nil, integration.NewNotFoundError(integration.ResourceName(integration.NetworkManager, globalNetworkSource, additionalAttr...))
+	return nil, integration.NewNotFoundError(integration.ResourceName(integration.NetworkManager, globalNetworkSrc, additionalAttr...))
 }
 
 func deleteGlobalNetwork(ctx context.Context, client *networkmanager.Client, globalNetworkID string) error {

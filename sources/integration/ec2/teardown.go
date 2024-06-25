@@ -11,7 +11,7 @@ import (
 func teardown(ctx context.Context, logger *slog.Logger, client *ec2.Client) error {
 	instanceID, err := findActiveInstanceIDByTags(client)
 	if err != nil {
-		nf := integration.NewNotFoundError(instanceSource)
+		nf := integration.NewNotFoundError(instanceSrc)
 		if errors.As(err, &nf) {
 			logger.WarnContext(ctx, "Instance not found")
 			return nil

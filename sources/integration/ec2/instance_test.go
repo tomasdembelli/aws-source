@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/overmindtech/aws-source/sources/integration"
 	"github.com/overmindtech/sdp-go"
-	"log/slog"
 	"testing"
 
 	"github.com/overmindtech/aws-source/sources"
@@ -14,11 +13,10 @@ import (
 
 func TestInstanceSource(t *testing.T) {
 	ctx := context.Background()
-	logger := slog.Default()
 
-	logger.Info("Running EC2 integration test TestInstanceSource")
+	t.Log("Running EC2 integration test TestInstanceSource")
 
-	ec2Cli, err := createEC2Client()
+	ec2Cli, err := createEC2Client(ctx)
 	if err != nil {
 		t.Fatalf("failed to create EC2 client: %v", err)
 	}
@@ -43,7 +41,17 @@ func TestInstanceSource(t *testing.T) {
 		t.Fatalf("failed to list EC2 instances: %v", err)
 	}
 
-	instanceID, err := integration.GetUniqueAttributeValue("instanceId", sdpListInstances)
+	if len(sdpListInstances) == 0 {
+		t.Fatalf("no instances found")
+	}
+
+	uniqueAttribute := sdpListInstances[0].GetUniqueAttribute()
+
+	instanceID, err := integration.GetUniqueAttributeValue(
+		uniqueAttribute,
+		sdpListInstances,
+		integration.ResourceTags(integration.EC2, instanceSrc),
+	)
 	if err != nil {
 		t.Fatalf("failed to get instance ID: %v", err)
 	}
@@ -54,7 +62,11 @@ func TestInstanceSource(t *testing.T) {
 		t.Fatalf("failed to get EC2 instance: %v", err)
 	}
 
-	instanceIDFromGet, err := integration.GetUniqueAttributeValue("instanceId", []*sdp.Item{sdpInstance})
+	instanceIDFromGet, err := integration.GetUniqueAttributeValue(
+		uniqueAttribute,
+		[]*sdp.Item{sdpInstance},
+		integration.ResourceTags(integration.EC2, instanceSrc),
+	)
 	if err != nil {
 		t.Fatalf("failed to get instance ID from get: %v", err)
 	}
@@ -70,7 +82,11 @@ func TestInstanceSource(t *testing.T) {
 		t.Fatalf("failed to search EC2 instances: %v", err)
 	}
 
-	instanceIDFromSearch, err := integration.GetUniqueAttributeValue("instanceId", sdpSearchInstances)
+	instanceIDFromSearch, err := integration.GetUniqueAttributeValue(
+		uniqueAttribute,
+		sdpSearchInstances,
+		integration.ResourceTags(integration.EC2, instanceSrc),
+	)
 	if err != nil {
 		t.Fatalf("failed to get instance ID from search: %v", err)
 	}

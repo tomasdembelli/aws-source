@@ -10,7 +10,7 @@ import (
 	"log/slog"
 )
 
-const globalNetworkSource = "global-network"
+const globalNetworkSrc = "global-network"
 
 func setup(ctx context.Context, logger *slog.Logger, networkmanagerClient *networkmanager.Client) error {
 
@@ -30,7 +30,7 @@ func createNetworkManagerClient(ctx context.Context) (*networkmanager.Client, er
 }
 
 func createGlobalNetwork(ctx context.Context, logger *slog.Logger, client *networkmanager.Client, testID string) error {
-	tags := resourceTags(globalNetworkSource, testID)
+	tags := resourceTags(globalNetworkSrc, testID)
 
 	input := &networkmanager.CreateGlobalNetworkInput{
 		Description: aws.String("Integration test global network"),

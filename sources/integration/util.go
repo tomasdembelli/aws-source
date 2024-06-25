@@ -33,7 +33,7 @@ func (rg resourceGroup) String() string {
 	case NetworkManager:
 		return "network-manager"
 	case EC2:
-		return "EC2"
+		return "ec2"
 	default:
 		return "unknown"
 	}
@@ -127,14 +127,19 @@ func removeUnhealthy(sdpInstances []*sdp.Item) []*sdp.Item {
 	return filteredInstances
 }
 
-func GetUniqueAttributeValue(uniqueAttrKey string, items []*sdp.Item) (string, error) {
-	items = removeUnhealthy(items)
-
-	if len(items) != 1 {
-		return "", fmt.Errorf("expected 1 item, got %v", len(items))
+func GetUniqueAttributeValue(uniqueAttrKey string, items []*sdp.Item, filterTags map[string]string) (string, error) {
+	var filteredItems []*sdp.Item
+	for _, item := range removeUnhealthy(items) {
+		if hasTags(item.GetTags(), filterTags) {
+			filteredItems = append(filteredItems, item)
+		}
 	}
 
-	uniqueAttrValue, err := items[0].GetAttributes().Get(uniqueAttrKey)
+	if len(filteredItems) != 1 {
+		return "", fmt.Errorf("expected 1 item, got %v", len(filteredItems))
+	}
+
+	uniqueAttrValue, err := filteredItems[0].GetAttributes().Get(uniqueAttrKey)
 	if err != nil {
 		return "", fmt.Errorf("failed to get %s: %v", uniqueAttrKey, err)
 	}
@@ -157,4 +162,23 @@ func ResourceName(resourceGroup resourceGroup, resourceName string, additionalAt
 	}
 
 	return strings.Join(name, "-")
+}
+
+func ResourceTags(resourceGroup resourceGroup, resourceName string, additionalAttr ...string) map[string]string {
+	return map[string]string{
+		TagTestKey:       TagTestValue,
+		TagTestTypeKey:   TestName(resourceGroup),
+		TagTestIDKey:     TestID(),
+		TagResourceIDKey: ResourceName(resourceGroup, resourceName, additionalAttr...),
+	}
+}
+
+func hasTags(tags map[string]string, requiredTags map[string]string) bool {
+	for k, v := range requiredTags {
+		if tags[k] != v {
+			return false
+		}
+	}
+
+	return true
 }

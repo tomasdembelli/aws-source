@@ -13,7 +13,7 @@ func TestIntegrationEC2(t *testing.T) {
 	ctx := context.Background()
 	logger := slog.Default()
 
-	ec2Client, err := createEC2Client()
+	ec2Client, err := createEC2Client(ctx)
 	if err != nil {
 		t.Fatalf("Failed to create EC2 client: %v", err)
 

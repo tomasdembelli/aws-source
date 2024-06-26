@@ -2,13 +2,11 @@ package networkmanager
 
 import (
 	"context"
-	"fmt"
 	"github.com/overmindtech/aws-source/sources"
 	"github.com/overmindtech/aws-source/sources/integration"
+	"github.com/overmindtech/aws-source/sources/networkmanager"
 	"github.com/overmindtech/sdp-go"
 	"testing"
-
-	networkmanagerovermind "github.com/overmindtech/aws-source/sources/networkmanager"
 )
 
 func TestGlobalNetworkSource(t *testing.T) {
@@ -26,14 +24,14 @@ func TestGlobalNetworkSource(t *testing.T) {
 		t.Fatalf("failed to get AWS settings: %v", err)
 	}
 
-	globalNetworkSource := networkmanagerovermind.NewGlobalNetworkSource(networkManagerCli, awsCfg.AccountID, awsCfg.Region)
+	globalNetworkSource := networkmanager.NewGlobalNetworkSource(networkManagerCli, awsCfg.AccountID, "")
 
 	err = globalNetworkSource.Validate()
 	if err != nil {
 		t.Fatalf("failed to validate NetworkManager global network source: %v", err)
 	}
 
-	scope := sources.FormatScope(awsCfg.AccountID, awsCfg.Region)
+	scope := sources.FormatScope(awsCfg.AccountID, "")
 
 	// List global networks
 	sdpListGlobalNetworks, err := globalNetworkSource.List(context.Background(), scope, true)
@@ -76,8 +74,14 @@ func TestGlobalNetworkSource(t *testing.T) {
 	}
 
 	// Search global network
-	globalNetworkARN := fmt.Sprintf("arn:aws:networkmanager:%s:%s:global-network/%s", awsCfg.Region, awsCfg.AccountID, globalNetworkID)
-	sdpSearchGlobalNetworks, err := globalNetworkSource.Search(context.Background(), scope, globalNetworkARN, true)
+	globalNetworkARN, err := sdpGlobalNetwork.GetAttributes().Get("globalNetworkArn")
+	if err != nil {
+		t.Fatalf("failed to get global network ARN: %v", err)
+	}
+
+	scope = sdpGlobalNetwork.GetScope()
+
+	sdpSearchGlobalNetworks, err := globalNetworkSource.Search(context.Background(), scope, globalNetworkARN.(string), true)
 	if err != nil {
 		t.Fatalf("failed to search NetworkManager global networks: %v", err)
 	}

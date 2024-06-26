@@ -3,12 +3,11 @@ package ec2
 import (
 	"context"
 	"fmt"
+	"github.com/overmindtech/aws-source/sources"
+	"github.com/overmindtech/aws-source/sources/ec2"
 	"github.com/overmindtech/aws-source/sources/integration"
 	"github.com/overmindtech/sdp-go"
 	"testing"
-
-	"github.com/overmindtech/aws-source/sources"
-	ec2overmind "github.com/overmindtech/aws-source/sources/ec2"
 )
 
 func TestInstanceSource(t *testing.T) {
@@ -26,7 +25,7 @@ func TestInstanceSource(t *testing.T) {
 		t.Fatalf("failed to get AWS settings: %v", err)
 	}
 
-	instanceSource := ec2overmind.NewInstanceSource(ec2Cli, awsCfg.AccountID, awsCfg.Region)
+	instanceSource := ec2.NewInstanceSource(ec2Cli, awsCfg.AccountID, awsCfg.Region)
 
 	err = instanceSource.Validate()
 	if err != nil {

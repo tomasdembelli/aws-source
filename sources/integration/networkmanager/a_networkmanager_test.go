@@ -2,9 +2,10 @@ package networkmanager
 
 import (
 	"context"
-	"github.com/overmindtech/aws-source/sources/integration"
 	"log/slog"
 	"testing"
+
+	"github.com/overmindtech/aws-source/sources/integration"
 )
 
 func TestIntegrationNetworkManager(t *testing.T) {

@@ -102,7 +102,6 @@ func siteOutputMapper(_ context.Context, _ *networkmanager.Client, scope string,
 // +overmind:type networkmanager-site
 // +overmind:descriptiveType Networkmanager Site
 // +overmind:get Get a Networkmanager Site
-// +overmind:list List all Networkmanager Sites
 // +overmind:search Search for Networkmanager Sites by GlobalNetworkId
 // +overmind:group AWS
 // +overmind:terraform:queryMap aws_networkmanager_site.arn

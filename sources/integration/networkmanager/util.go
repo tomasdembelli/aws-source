@@ -2,6 +2,7 @@ package networkmanager
 
 import (
 	"context"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/networkmanager"
 	"github.com/aws/aws-sdk-go-v2/service/networkmanager/types"
@@ -29,19 +30,19 @@ func resourceTags(resourceName, testID string, additionalAttr ...string) []types
 	}
 }
 
-func findGlobalNetworkIDByTags(client *networkmanager.Client, additionalAttr ...string) (*string, error) {
-	result, err := client.DescribeGlobalNetworks(context.Background(), &networkmanager.DescribeGlobalNetworksInput{})
+func findGlobalNetworkIDByTags(ctx context.Context, client *networkmanager.Client, requiredTags []types.Tag) (*string, error) {
+	result, err := client.DescribeGlobalNetworks(ctx, &networkmanager.DescribeGlobalNetworksInput{})
 	if err != nil {
 		return nil, err
 	}
 
 	for _, globalNetwork := range result.GlobalNetworks {
-		if hasTags(globalNetwork.Tags, resourceTags(globalNetworkSrc, integration.TestID(), additionalAttr...)) {
+		if hasTags(globalNetwork.Tags, requiredTags) {
 			return globalNetwork.GlobalNetworkId, nil
 		}
 	}
 
-	return nil, integration.NewNotFoundError(integration.ResourceName(integration.NetworkManager, globalNetworkSrc, additionalAttr...))
+	return nil, integration.NewNotFoundError(integration.ResourceName(integration.NetworkManager, globalNetworkSrc))
 }
 
 func deleteGlobalNetwork(ctx context.Context, client *networkmanager.Client, globalNetworkID string) error {
@@ -71,4 +72,31 @@ func hasTags(tags []types.Tag, requiredTags []types.Tag) bool {
 	}
 
 	return true
+}
+
+func findSiteIDByTags(ctx context.Context, client *networkmanager.Client, globalNetworkID *string, requiredTags []types.Tag) (*string, error) {
+	result, err := client.GetSites(ctx, &networkmanager.GetSitesInput{
+		GlobalNetworkId: globalNetworkID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, site := range result.Sites {
+		if hasTags(site.Tags, requiredTags) {
+			return site.SiteId, nil
+		}
+	}
+
+	return nil, integration.NewNotFoundError(integration.ResourceName(integration.NetworkManager, siteSrc))
+}
+
+func deleteSite(ctx context.Context, client *networkmanager.Client, globalNetworkID, siteID *string) error {
+	input := &networkmanager.DeleteSiteInput{
+		GlobalNetworkId: globalNetworkID,
+		SiteId:          siteID,
+	}
+
+	_, err := client.DeleteSite(ctx, input)
+	return err
 }

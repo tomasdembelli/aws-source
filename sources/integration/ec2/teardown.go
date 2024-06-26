@@ -3,9 +3,10 @@ package ec2
 import (
 	"context"
 	"errors"
+	"log/slog"
+
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/overmindtech/aws-source/sources/integration"
-	"log/slog"
 )
 
 func teardown(ctx context.Context, logger *slog.Logger, client *ec2.Client) error {

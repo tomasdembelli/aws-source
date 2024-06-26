@@ -3,14 +3,15 @@ package integration
 import (
 	"context"
 	"fmt"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi/types"
-	"github.com/overmindtech/sdp-go"
 	"os"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi/types"
+	"github.com/overmindtech/sdp-go"
 )
 
 const (
@@ -157,9 +158,7 @@ func GetUniqueAttributeValue(uniqueAttrKey string, items []*sdp.Item, filterTags
 func ResourceName(resourceGroup resourceGroup, resourceName string, additionalAttr ...string) string {
 	name := []string{"integration-test", resourceGroup.String(), resourceName}
 
-	for _, attr := range additionalAttr {
-		name = append(name, attr)
-	}
+	name = append(name, additionalAttr...)
 
 	return strings.Join(name, "-")
 }

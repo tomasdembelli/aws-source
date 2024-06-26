@@ -2,11 +2,12 @@ package networkmanager
 
 import (
 	"context"
+	"testing"
+
 	"github.com/overmindtech/aws-source/sources"
 	"github.com/overmindtech/aws-source/sources/integration"
 	"github.com/overmindtech/aws-source/sources/networkmanager"
 	"github.com/overmindtech/sdp-go"
-	"testing"
 )
 
 func TestGlobalNetworkSource(t *testing.T) {
@@ -91,7 +92,6 @@ func TestGlobalNetworkSource(t *testing.T) {
 		sdpSearchGlobalNetworks,
 		integration.ResourceTags(integration.NetworkManager, globalNetworkSrc),
 	)
-
 	if err != nil {
 		t.Fatalf("failed to get global network ID from search: %v", err)
 	}
@@ -99,5 +99,4 @@ func TestGlobalNetworkSource(t *testing.T) {
 	if globalNetworkID != instanceIDFromSearch {
 		t.Fatalf("expected global network ID %s, got %s", globalNetworkID, instanceIDFromSearch)
 	}
-
 }

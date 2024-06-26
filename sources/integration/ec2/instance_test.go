@@ -3,11 +3,12 @@ package ec2
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/overmindtech/aws-source/sources"
 	"github.com/overmindtech/aws-source/sources/ec2"
 	"github.com/overmindtech/aws-source/sources/integration"
 	"github.com/overmindtech/sdp-go"
-	"testing"
 )
 
 func TestInstanceSource(t *testing.T) {

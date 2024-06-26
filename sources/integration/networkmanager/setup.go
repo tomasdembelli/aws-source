@@ -3,19 +3,35 @@ package networkmanager
 import (
 	"context"
 	"errors"
+	"log/slog"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/networkmanager"
 	"github.com/overmindtech/aws-source/sources/integration"
-	"log/slog"
 )
 
-const globalNetworkSrc = "global-network"
+const (
+	globalNetworkSrc = "global-network"
+	siteSrc          = "site"
+)
 
 func setup(ctx context.Context, logger *slog.Logger, networkmanagerClient *networkmanager.Client) error {
-
 	// Create a global network
-	return createGlobalNetwork(ctx, logger, networkmanagerClient, integration.TestID())
+	globalNetworkID, err := createGlobalNetwork(ctx, logger, networkmanagerClient, integration.TestID())
+	if err != nil {
+		return err
+	}
+
+	// Create a site in the global network
+	siteID, err := createSite(ctx, logger, networkmanagerClient, integration.TestID(), globalNetworkID)
+	if err != nil {
+		return err
+	}
+
+	_ = siteID
+
+	return nil
 }
 
 func createNetworkManagerClient(ctx context.Context) (*networkmanager.Client, error) {
@@ -29,7 +45,7 @@ func createNetworkManagerClient(ctx context.Context) (*networkmanager.Client, er
 	return client, nil
 }
 
-func createGlobalNetwork(ctx context.Context, logger *slog.Logger, client *networkmanager.Client, testID string) error {
+func createGlobalNetwork(ctx context.Context, logger *slog.Logger, client *networkmanager.Client, testID string) (*string, error) {
 	tags := resourceTags(globalNetworkSrc, testID)
 
 	input := &networkmanager.CreateGlobalNetworkInput{
@@ -37,20 +53,55 @@ func createGlobalNetwork(ctx context.Context, logger *slog.Logger, client *netwo
 		Tags:        tags,
 	}
 
-	id, err := findGlobalNetworkIDByTags(client)
+	id, err := findGlobalNetworkIDByTags(ctx, client, tags)
 	if err != nil {
 		if errors.As(err, new(integration.NotFoundError)) {
 			logger.InfoContext(ctx, "Creating global network")
 		} else {
-			return err
+			return nil, err
 		}
 	}
 
 	if id != nil {
 		logger.InfoContext(ctx, "Global network already exists")
-		return nil
+		return id, nil
 	}
 
-	_, err = client.CreateGlobalNetwork(context.Background(), input)
-	return err
+	response, err := client.CreateGlobalNetwork(context.Background(), input)
+	if err != nil {
+		return nil, err
+	}
+
+	return response.GlobalNetwork.GlobalNetworkId, nil
+}
+
+func createSite(ctx context.Context, logger *slog.Logger, client *networkmanager.Client, testID string, globalNetworkID *string) (*string, error) {
+	tags := resourceTags(siteSrc, testID)
+
+	input := &networkmanager.CreateSiteInput{
+		GlobalNetworkId: globalNetworkID,
+		Description:     aws.String("Integration test site"),
+		Tags:            tags,
+	}
+
+	id, err := findSiteIDByTags(ctx, client, globalNetworkID, tags)
+	if err != nil {
+		if errors.As(err, new(integration.NotFoundError)) {
+			logger.InfoContext(ctx, "Creating site")
+		} else {
+			return nil, err
+		}
+	}
+
+	if id != nil {
+		logger.InfoContext(ctx, "Site already exists")
+		return id, nil
+	}
+
+	response, err := client.CreateSite(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	return response.Site.SiteId, nil
 }

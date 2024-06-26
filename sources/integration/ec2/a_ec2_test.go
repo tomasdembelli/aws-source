@@ -2,9 +2,10 @@ package ec2
 
 import (
 	"context"
-	"github.com/overmindtech/aws-source/sources/integration"
 	"log/slog"
 	"testing"
+
+	"github.com/overmindtech/aws-source/sources/integration"
 )
 
 func TestIntegrationEC2(t *testing.T) {
@@ -16,7 +17,6 @@ func TestIntegrationEC2(t *testing.T) {
 	ec2Client, err := createEC2Client(ctx)
 	if err != nil {
 		t.Fatalf("Failed to create EC2 client: %v", err)
-
 	}
 
 	t.Run("Setup", func(t *testing.T) {

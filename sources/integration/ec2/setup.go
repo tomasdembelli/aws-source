@@ -3,19 +3,19 @@ package ec2
 import (
 	"context"
 	"errors"
+	"log/slog"
+	"time"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/overmindtech/aws-source/sources/integration"
-	"log/slog"
-	"time"
 )
 
 const instanceSrc = "instance"
 
 func setup(ctx context.Context, logger *slog.Logger, client *ec2.Client) error {
-
 	// Create EC2 instance
 	return createEC2Instance(ctx, logger, client, integration.TestID())
 }

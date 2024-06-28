@@ -25,7 +25,7 @@ func TestGlobalNetworkSource(t *testing.T) {
 		t.Fatalf("failed to get AWS settings: %v", err)
 	}
 
-	globalNetworkSource := networkmanager.NewGlobalNetworkSource(networkManagerCli, awsCfg.AccountID, "")
+	globalNetworkSource := networkmanager.NewGlobalNetworkSource(networkManagerCli, awsCfg.AccountID)
 
 	err = globalNetworkSource.Validate()
 	if err != nil {

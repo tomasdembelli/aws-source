@@ -411,7 +411,6 @@ func InitializeAwsSourceEngine(ctx context.Context, natsOptions auth.NATSOptions
 			networkmanager.NewCoreNetworkPolicySource(networkmanagerClient, *callerID.Account, region),
 			networkmanager.NewCoreNetworkSource(networkmanagerClient, *callerID.Account, region),
 			networkmanager.NewDeviceSource(networkmanagerClient, *callerID.Account, region),
-			networkmanager.NewGlobalNetworkSource(networkmanagerClient, *callerID.Account, region),
 			networkmanager.NewLinkAssociationSource(networkmanagerClient, *callerID.Account, region),
 			networkmanager.NewLinkSource(networkmanagerClient, *callerID.Account, region),
 			networkmanager.NewNetworkResourceRelationshipsSource(networkmanagerClient, *callerID.Account, region),
@@ -456,6 +455,9 @@ func InitializeAwsSourceEngine(ctx context.Context, natsOptions auth.NATSOptions
 
 				// S3
 				s3.NewS3Source(cfg, *callerID.Account),
+
+				// Networkmanager
+				networkmanager.NewGlobalNetworkSource(networkmanagerClient, *callerID.Account),
 			)
 			globalDone = true
 		}

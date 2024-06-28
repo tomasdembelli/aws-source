@@ -10,7 +10,7 @@ import (
 	"github.com/overmindtech/sdp-go"
 )
 
-func TestGlobalNetworkSource(t *testing.T) {
+func TestNetworkManager(t *testing.T) {
 	ctx := context.Background()
 
 	t.Logf("Running NetworkManager integration tests")
@@ -44,10 +44,10 @@ func TestGlobalNetworkSource(t *testing.T) {
 		t.Fatalf("no global networks found")
 	}
 
-	uniqueAttribute := sdpListGlobalNetworks[0].GetUniqueAttribute()
+	globalNetworkuniqueAttribute := sdpListGlobalNetworks[0].GetUniqueAttribute()
 
 	globalNetworkID, err := integration.GetUniqueAttributeValue(
-		uniqueAttribute,
+		globalNetworkuniqueAttribute,
 		sdpListGlobalNetworks,
 		integration.ResourceTags(integration.NetworkManager, globalNetworkSrc),
 	)
@@ -62,7 +62,7 @@ func TestGlobalNetworkSource(t *testing.T) {
 	}
 
 	globalNetworkIDFromGet, err := integration.GetUniqueAttributeValue(
-		uniqueAttribute,
+		globalNetworkuniqueAttribute,
 		[]*sdp.Item{sdpGlobalNetwork},
 		integration.ResourceTags(integration.NetworkManager, globalNetworkSrc),
 	)
@@ -87,8 +87,12 @@ func TestGlobalNetworkSource(t *testing.T) {
 		t.Fatalf("failed to search NetworkManager global networks: %v", err)
 	}
 
+	if len(sdpSearchGlobalNetworks) == 0 {
+		t.Fatalf("no global networks found")
+	}
+
 	instanceIDFromSearch, err := integration.GetUniqueAttributeValue(
-		uniqueAttribute,
+		globalNetworkuniqueAttribute,
 		sdpSearchGlobalNetworks,
 		integration.ResourceTags(integration.NetworkManager, globalNetworkSrc),
 	)
@@ -98,5 +102,47 @@ func TestGlobalNetworkSource(t *testing.T) {
 
 	if globalNetworkID != instanceIDFromSearch {
 		t.Fatalf("expected global network ID %s, got %s", globalNetworkID, instanceIDFromSearch)
+	}
+
+	// Search sites by the global network ID that they are created on
+	siteSource := networkmanager.NewSiteSource(networkManagerCli, awsCfg.AccountID)
+
+	sdpSearchSites, err := siteSource.Search(ctx, scope, globalNetworkID, true)
+	if err != nil {
+		t.Fatalf("failed to search for site: %v", err)
+	}
+
+	if len(sdpSearchSites) == 0 {
+		t.Fatalf("no sites found")
+	}
+
+	siteUniqueAttribute := sdpSearchSites[0].GetUniqueAttribute()
+
+	compositeSiteID, err := integration.GetUniqueAttributeValue(
+		siteUniqueAttribute,
+		sdpSearchSites,
+		integration.ResourceTags(integration.NetworkManager, siteSrc),
+	)
+	if err != nil {
+		t.Fatalf("failed to get site ID from search: %v", err)
+	}
+
+	// Get site: query format = globalNetworkID|siteID
+	sdpGetSite, err := siteSource.Get(ctx, scope, compositeSiteID, true)
+	if err != nil {
+		t.Fatalf("failed to get site: %v", err)
+	}
+
+	siteIDFromGet, err := integration.GetUniqueAttributeValue(
+		siteUniqueAttribute,
+		[]*sdp.Item{sdpGetSite},
+		integration.ResourceTags(integration.NetworkManager, siteSrc),
+	)
+	if err != nil {
+		t.Fatalf("failed to get site ID from get: %v", err)
+	}
+
+	if compositeSiteID != siteIDFromGet {
+		t.Fatalf("expected site ID %s, got %s", compositeSiteID, siteIDFromGet)
 	}
 }

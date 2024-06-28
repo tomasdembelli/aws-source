@@ -82,6 +82,10 @@ func TestInstanceSource(t *testing.T) {
 		t.Fatalf("failed to search EC2 instances: %v", err)
 	}
 
+	if len(sdpSearchInstances) == 0 {
+		t.Fatalf("no instances found")
+	}
+
 	instanceIDFromSearch, err := integration.GetUniqueAttributeValue(
 		uniqueAttribute,
 		sdpSearchInstances,

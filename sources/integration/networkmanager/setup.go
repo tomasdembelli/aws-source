@@ -5,6 +5,8 @@ import (
 	"errors"
 	"log/slog"
 
+	"github.com/aws/aws-sdk-go-v2/service/networkmanager/types"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/networkmanager"
@@ -14,22 +16,28 @@ import (
 const (
 	globalNetworkSrc = "global-network"
 	siteSrc          = "site"
+	linkSrc          = "link"
 )
 
 func setup(ctx context.Context, logger *slog.Logger, networkmanagerClient *networkmanager.Client) error {
+	testID := integration.TestID()
 	// Create a global network
-	globalNetworkID, err := createGlobalNetwork(ctx, logger, networkmanagerClient, integration.TestID())
+	globalNetworkID, err := createGlobalNetwork(ctx, logger, networkmanagerClient, testID)
 	if err != nil {
 		return err
 	}
 
 	// Create a site in the global network
-	siteID, err := createSite(ctx, logger, networkmanagerClient, integration.TestID(), globalNetworkID)
+	siteID, err := createSite(ctx, logger, networkmanagerClient, testID, globalNetworkID)
 	if err != nil {
 		return err
 	}
 
-	_ = siteID
+	// Create a link in the global network for the site
+	_, err = createLink(ctx, logger, networkmanagerClient, testID, globalNetworkID, siteID)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -104,4 +112,40 @@ func createSite(ctx context.Context, logger *slog.Logger, client *networkmanager
 	}
 
 	return response.Site.SiteId, nil
+}
+
+func createLink(ctx context.Context, logger *slog.Logger, client *networkmanager.Client, testID string, globalNetworkID, siteID *string) (*string, error) {
+	tags := resourceTags(linkSrc, testID)
+
+	input := &networkmanager.CreateLinkInput{
+		GlobalNetworkId: globalNetworkID,
+		SiteId:          siteID,
+		Description:     aws.String("Integration test link"),
+		Bandwidth: &types.Bandwidth{
+			UploadSpeed:   aws.Int32(50),
+			DownloadSpeed: aws.Int32(50),
+		},
+		Tags: tags,
+	}
+
+	id, err := findLinkIDByTags(ctx, client, globalNetworkID, siteID, tags)
+	if err != nil {
+		if errors.As(err, new(integration.NotFoundError)) {
+			logger.InfoContext(ctx, "Creating link")
+		} else {
+			return nil, err
+		}
+	}
+
+	if id != nil {
+		logger.InfoContext(ctx, "Link already exists")
+		return id, nil
+	}
+
+	response, err := client.CreateLink(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	return response.Link.LinkId, nil
 }

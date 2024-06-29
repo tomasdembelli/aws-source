@@ -32,6 +32,22 @@ func teardown(ctx context.Context, logger *slog.Logger, client *networkmanager.C
 		}
 	}
 
+	linkID, err := findLinkIDByTags(ctx, client, globalNetworkID, siteID, resourceTags(linkSrc, integration.TestID()))
+	if err != nil {
+		nf := integration.NewNotFoundError(linkSrc)
+		if errors.As(err, &nf) {
+			logger.WarnContext(ctx, "Link not found")
+			return nil
+		} else {
+			return err
+		}
+	}
+
+	err = deleteLink(ctx, client, globalNetworkID, linkID)
+	if err != nil {
+		return err
+	}
+
 	err = deleteSite(ctx, client, globalNetworkID, siteID)
 	if err != nil {
 		return err

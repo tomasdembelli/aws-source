@@ -3,6 +3,7 @@ package ec2
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"testing"
 
 	"github.com/overmindtech/aws-source/sources"
@@ -11,10 +12,37 @@ import (
 	"github.com/overmindtech/sdp-go"
 )
 
-func TestInstanceSource(t *testing.T) {
+func TestIntegrationEC2(t *testing.T) {
+	ctx := context.Background()
+	logger := slog.Default()
+
+	ec2Client, err := createEC2Client(ctx)
+	if err != nil {
+		t.Fatalf("Failed to create EC2 client: %v", err)
+	}
+
+	t.Run("Setup", func(t *testing.T) {
+		if err := setup(ctx, logger, ec2Client); err != nil {
+			t.Fatalf("Failed to setup EC2 integration tests: %v", err)
+		}
+	})
+
+	t.Run("Test EC2", func(t *testing.T) {
+		t.Logf("Running EC2 integration tests")
+		TestEC2(t)
+	})
+
+	t.Run("Teardown", func(t *testing.T) {
+		if err := teardown(ctx, logger, ec2Client); err != nil {
+			t.Fatalf("Failed to teardown EC2 integration tests: %v", err)
+		}
+	})
+}
+
+func TestEC2(t *testing.T) {
 	ctx := context.Background()
 
-	t.Log("Running EC2 integration test TestInstanceSource")
+	t.Log("Running EC2 integration test")
 
 	ec2Cli, err := createEC2Client(ctx)
 	if err != nil {

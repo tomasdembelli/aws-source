@@ -6,7 +6,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -40,25 +39,19 @@ func (rg resourceGroup) String() string {
 	}
 }
 
-func ShouldRunIntegrationTests(t *testing.T) {
+func ShouldRunIntegrationTests() bool {
 	run, found := os.LookupEnv("RUN_INTEGRATION_TESTS")
 
 	if !found {
-		t.Skipf("skipping integration tests.. set RUN_INTEGRATION_TESTS=true to run them")
-		return
+		return false
 	}
 
 	shouldRun, err := strconv.ParseBool(run)
 	if err != nil {
-		t.Skipf("failed to parse RUN_INTEGRATION_TESTS")
-		return
+		return false
 	}
 
-	if !shouldRun {
-		t.Skipf("skipping integration tests.. set RUN_INTEGRATION_TESTS=true to run them")
-
-		return
-	}
+	return shouldRun
 }
 
 func TestID() string {

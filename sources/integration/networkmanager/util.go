@@ -100,3 +100,31 @@ func deleteSite(ctx context.Context, client *networkmanager.Client, globalNetwor
 	_, err := client.DeleteSite(ctx, input)
 	return err
 }
+
+func findLinkIDByTags(ctx context.Context, client *networkmanager.Client, globalNetworkID, siteID *string, requiredTags []types.Tag) (*string, error) {
+	result, err := client.GetLinks(ctx, &networkmanager.GetLinksInput{
+		GlobalNetworkId: globalNetworkID,
+		SiteId:          siteID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, link := range result.Links {
+		if hasTags(link.Tags, requiredTags) {
+			return link.LinkId, nil
+		}
+	}
+
+	return nil, integration.NewNotFoundError(integration.ResourceName(integration.NetworkManager, linkSrc))
+}
+
+func deleteLink(ctx context.Context, client *networkmanager.Client, globalNetworkID, linkID *string) error {
+	input := &networkmanager.DeleteLinkInput{
+		GlobalNetworkId: globalNetworkID,
+		LinkId:          linkID,
+	}
+
+	_, err := client.DeleteLink(ctx, input)
+	return err
+}

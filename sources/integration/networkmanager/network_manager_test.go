@@ -2,6 +2,7 @@ package networkmanager
 
 import (
 	"context"
+	"log/slog"
 	"testing"
 
 	"github.com/overmindtech/aws-source/sources"
@@ -9,6 +10,33 @@ import (
 	"github.com/overmindtech/aws-source/sources/networkmanager"
 	"github.com/overmindtech/sdp-go"
 )
+
+func TestIntegrationNetworkManager(t *testing.T) {
+	ctx := context.Background()
+	logger := slog.Default()
+
+	networkmanagerClient, err := createNetworkManagerClient(ctx)
+	if err != nil {
+		t.Fatalf("Failed to create NetworkManager client: %v", err)
+	}
+
+	t.Run("Setup", func(t *testing.T) {
+		if err := setup(ctx, logger, networkmanagerClient); err != nil {
+			t.Fatalf("Failed to setup NetworkManager integration tests: %v", err)
+		}
+	})
+
+	t.Run("Test Global Network", func(t *testing.T) {
+		t.Logf("Running NetworkManager integration tests")
+		TestNetworkManager(t)
+	})
+
+	t.Run("Teardown", func(t *testing.T) {
+		if err := teardown(ctx, logger, networkmanagerClient); err != nil {
+			t.Fatalf("Failed to teardown NetworkManager integration tests: %v", err)
+		}
+	})
+}
 
 func TestNetworkManager(t *testing.T) {
 	ctx := context.Background()
@@ -144,5 +172,44 @@ func TestNetworkManager(t *testing.T) {
 
 	if compositeSiteID != siteIDFromGet {
 		t.Fatalf("expected site ID %s, got %s", compositeSiteID, siteIDFromGet)
+	}
+
+	// Search links by the global network ID that they are created on
+	linkSource := networkmanager.NewLinkSource(networkManagerCli, awsCfg.AccountID)
+
+	sdpSearchLinks, err := linkSource.Search(ctx, scope, globalNetworkID, true)
+	if err != nil {
+		t.Fatalf("failed to search for link: %v", err)
+	}
+
+	if len(sdpSearchLinks) == 0 {
+		t.Fatalf("no links found")
+	}
+
+	linkUniqueAttribute := sdpSearchLinks[0].GetUniqueAttribute()
+
+	compositeLinkID, err := integration.GetUniqueAttributeValue(
+		linkUniqueAttribute,
+		sdpSearchLinks,
+		integration.ResourceTags(integration.NetworkManager, linkSrc),
+	)
+	if err != nil {
+		t.Fatalf("failed to get link ID from search: %v", err)
+	}
+
+	// Get link: query format = globalNetworkID|linkID
+	sdpGetLink, err := linkSource.Get(ctx, scope, compositeLinkID, true)
+	if err != nil {
+		t.Fatalf("failed to get link: %v", err)
+	}
+
+	linkIDFromGet, err := integration.GetUniqueAttributeValue(
+		linkUniqueAttribute,
+		[]*sdp.Item{sdpGetLink},
+		integration.ResourceTags(integration.NetworkManager, linkSrc),
+	)
+
+	if compositeLinkID != linkIDFromGet {
+		t.Fatalf("expected link ID %s, got %s", compositeLinkID, linkIDFromGet)
 	}
 }

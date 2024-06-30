@@ -60,10 +60,10 @@ func TestNetworkManager(t *testing.T) {
 		t.Fatalf("failed to validate NetworkManager global network source: %v", err)
 	}
 
-	scope := sources.FormatScope(awsCfg.AccountID, "")
+	globalScope := sources.FormatScope(awsCfg.AccountID, "")
 
 	// List global networks
-	sdpListGlobalNetworks, err := globalNetworkSource.List(context.Background(), scope, true)
+	sdpListGlobalNetworks, err := globalNetworkSource.List(context.Background(), globalScope, true)
 	if err != nil {
 		t.Fatalf("failed to list NetworkManager global networks: %v", err)
 	}
@@ -72,10 +72,10 @@ func TestNetworkManager(t *testing.T) {
 		t.Fatalf("no global networks found")
 	}
 
-	globalNetworkuniqueAttribute := sdpListGlobalNetworks[0].GetUniqueAttribute()
+	globalNetworkUniqueAttribute := sdpListGlobalNetworks[0].GetUniqueAttribute()
 
 	globalNetworkID, err := integration.GetUniqueAttributeValue(
-		globalNetworkuniqueAttribute,
+		globalNetworkUniqueAttribute,
 		sdpListGlobalNetworks,
 		integration.ResourceTags(integration.NetworkManager, globalNetworkSrc),
 	)
@@ -84,13 +84,13 @@ func TestNetworkManager(t *testing.T) {
 	}
 
 	// Get global network
-	sdpGlobalNetwork, err := globalNetworkSource.Get(context.Background(), scope, globalNetworkID, true)
+	sdpGlobalNetwork, err := globalNetworkSource.Get(context.Background(), globalScope, globalNetworkID, true)
 	if err != nil {
 		t.Fatalf("failed to get NetworkManager global network: %v", err)
 	}
 
 	globalNetworkIDFromGet, err := integration.GetUniqueAttributeValue(
-		globalNetworkuniqueAttribute,
+		globalNetworkUniqueAttribute,
 		[]*sdp.Item{sdpGlobalNetwork},
 		integration.ResourceTags(integration.NetworkManager, globalNetworkSrc),
 	)
@@ -108,9 +108,9 @@ func TestNetworkManager(t *testing.T) {
 		t.Fatalf("failed to get global network ARN: %v", err)
 	}
 
-	scope = sdpGlobalNetwork.GetScope()
+	globalScope = sdpGlobalNetwork.GetScope()
 
-	sdpSearchGlobalNetworks, err := globalNetworkSource.Search(context.Background(), scope, globalNetworkARN.(string), true)
+	sdpSearchGlobalNetworks, err := globalNetworkSource.Search(context.Background(), globalScope, globalNetworkARN.(string), true)
 	if err != nil {
 		t.Fatalf("failed to search NetworkManager global networks: %v", err)
 	}
@@ -120,7 +120,7 @@ func TestNetworkManager(t *testing.T) {
 	}
 
 	instanceIDFromSearch, err := integration.GetUniqueAttributeValue(
-		globalNetworkuniqueAttribute,
+		globalNetworkUniqueAttribute,
 		sdpSearchGlobalNetworks,
 		integration.ResourceTags(integration.NetworkManager, globalNetworkSrc),
 	)
@@ -135,7 +135,7 @@ func TestNetworkManager(t *testing.T) {
 	// Search sites by the global network ID that they are created on
 	siteSource := networkmanager.NewSiteSource(networkManagerCli, awsCfg.AccountID)
 
-	sdpSearchSites, err := siteSource.Search(ctx, scope, globalNetworkID, true)
+	sdpSearchSites, err := siteSource.Search(ctx, globalScope, globalNetworkID, true)
 	if err != nil {
 		t.Fatalf("failed to search for site: %v", err)
 	}
@@ -146,6 +146,7 @@ func TestNetworkManager(t *testing.T) {
 
 	siteUniqueAttribute := sdpSearchSites[0].GetUniqueAttribute()
 
+	// composite site id is in the format of {globalNetworkID}|{siteID}
 	compositeSiteID, err := integration.GetUniqueAttributeValue(
 		siteUniqueAttribute,
 		sdpSearchSites,
@@ -156,7 +157,7 @@ func TestNetworkManager(t *testing.T) {
 	}
 
 	// Get site: query format = globalNetworkID|siteID
-	sdpGetSite, err := siteSource.Get(ctx, scope, compositeSiteID, true)
+	sdpGetSite, err := siteSource.Get(ctx, globalScope, compositeSiteID, true)
 	if err != nil {
 		t.Fatalf("failed to get site: %v", err)
 	}
@@ -177,7 +178,7 @@ func TestNetworkManager(t *testing.T) {
 	// Search links by the global network ID that they are created on
 	linkSource := networkmanager.NewLinkSource(networkManagerCli, awsCfg.AccountID)
 
-	sdpSearchLinks, err := linkSource.Search(ctx, scope, globalNetworkID, true)
+	sdpSearchLinks, err := linkSource.Search(ctx, globalScope, globalNetworkID, true)
 	if err != nil {
 		t.Fatalf("failed to search for link: %v", err)
 	}
@@ -198,7 +199,7 @@ func TestNetworkManager(t *testing.T) {
 	}
 
 	// Get link: query format = globalNetworkID|linkID
-	sdpGetLink, err := linkSource.Get(ctx, scope, compositeLinkID, true)
+	sdpGetLink, err := linkSource.Get(ctx, globalScope, compositeLinkID, true)
 	if err != nil {
 		t.Fatalf("failed to get link: %v", err)
 	}
@@ -212,4 +213,47 @@ func TestNetworkManager(t *testing.T) {
 	if compositeLinkID != linkIDFromGet {
 		t.Fatalf("expected link ID %s, got %s", compositeLinkID, linkIDFromGet)
 	}
+
+	// Search devices by the global network ID and site ID
+	deviceSource := networkmanager.NewDeviceSource(networkManagerCli, awsCfg.AccountID)
+
+	sdpSearchDevices, err := deviceSource.Search(ctx, globalScope, compositeSiteID, true)
+	if err != nil {
+		t.Fatalf("failed to search for device: %v", err)
+	}
+
+	if len(sdpSearchDevices) == 0 {
+		t.Fatalf("no devices found")
+	}
+
+	deviceUniqueAttribute := sdpSearchDevices[0].GetUniqueAttribute()
+
+	// composite device id is in the format of: {globalNetworkID}|{deviceID}
+	compositeDeviceID, err := integration.GetUniqueAttributeValue(
+		deviceUniqueAttribute,
+		sdpSearchDevices,
+		integration.ResourceTags(integration.NetworkManager, deviceSrc),
+	)
+	if err != nil {
+		t.Fatalf("failed to get device ID from search: %v", err)
+	}
+
+	// Get device: query format = globalNetworkID|deviceID
+	sdpGetDevice, err := deviceSource.Get(ctx, globalScope, compositeDeviceID, true)
+	if err != nil {
+		t.Fatalf("failed to get device: %v", err)
+	}
+
+	deviceIDFromGet, err := integration.GetUniqueAttributeValue(
+		deviceUniqueAttribute,
+		[]*sdp.Item{sdpGetDevice},
+		integration.ResourceTags(integration.NetworkManager, deviceSrc),
+	)
+
+	if compositeDeviceID != deviceIDFromGet {
+		t.Fatalf("expected device ID %s, got %s", compositeDeviceID, deviceIDFromGet)
+	}
+
+	// Search link associations by the global network ID, link ID, and device ID
+	linkAssociationSource := networkmanager.NewLinkAssociationSource(networkManagerCli, awsCfg.AccountID)
 }

@@ -2,33 +2,11 @@ package networkmanager
 
 import (
 	"context"
-
-	"github.com/aws/aws-sdk-go-v2/aws"
+	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/networkmanager"
 	"github.com/aws/aws-sdk-go-v2/service/networkmanager/types"
 	"github.com/overmindtech/aws-source/sources/integration"
 )
-
-func resourceTags(resourceName, testID string, additionalAttr ...string) []types.Tag {
-	return []types.Tag{
-		{
-			Key:   aws.String(integration.TagTestKey),
-			Value: aws.String(integration.TagTestValue),
-		},
-		{
-			Key:   aws.String(integration.TagTestTypeKey),
-			Value: aws.String(integration.TestName(integration.NetworkManager)),
-		},
-		{
-			Key:   aws.String(integration.TagTestIDKey),
-			Value: aws.String(testID),
-		},
-		{
-			Key:   aws.String(integration.TagResourceIDKey),
-			Value: aws.String(integration.ResourceName(integration.NetworkManager, resourceName, additionalAttr...)),
-		},
-	}
-}
 
 func findGlobalNetworkIDByTags(ctx context.Context, client *networkmanager.Client, requiredTags []types.Tag) (*string, error) {
 	result, err := client.DescribeGlobalNetworks(ctx, &networkmanager.DescribeGlobalNetworksInput{})
@@ -43,35 +21,6 @@ func findGlobalNetworkIDByTags(ctx context.Context, client *networkmanager.Clien
 	}
 
 	return nil, integration.NewNotFoundError(integration.ResourceName(integration.NetworkManager, globalNetworkSrc))
-}
-
-func deleteGlobalNetwork(ctx context.Context, client *networkmanager.Client, globalNetworkID string) error {
-	input := &networkmanager.DeleteGlobalNetworkInput{
-		GlobalNetworkId: aws.String(globalNetworkID),
-	}
-
-	_, err := client.DeleteGlobalNetwork(ctx, input)
-	return err
-}
-
-func hasTags(tags []types.Tag, requiredTags []types.Tag) bool {
-	rT := make(map[string]string)
-	for _, t := range requiredTags {
-		rT[*t.Key] = *t.Value
-	}
-
-	oT := make(map[string]string)
-	for _, t := range tags {
-		oT[*t.Key] = *t.Value
-	}
-
-	for k, v := range rT {
-		if oT[k] != v {
-			return false
-		}
-	}
-
-	return true
 }
 
 func findSiteIDByTags(ctx context.Context, client *networkmanager.Client, globalNetworkID *string, requiredTags []types.Tag) (*string, error) {
@@ -89,16 +38,6 @@ func findSiteIDByTags(ctx context.Context, client *networkmanager.Client, global
 	}
 
 	return nil, integration.NewNotFoundError(integration.ResourceName(integration.NetworkManager, siteSrc))
-}
-
-func deleteSite(ctx context.Context, client *networkmanager.Client, globalNetworkID, siteID *string) error {
-	input := &networkmanager.DeleteSiteInput{
-		GlobalNetworkId: globalNetworkID,
-		SiteId:          siteID,
-	}
-
-	_, err := client.DeleteSite(ctx, input)
-	return err
 }
 
 func findLinkIDByTags(ctx context.Context, client *networkmanager.Client, globalNetworkID, siteID *string, requiredTags []types.Tag) (*string, error) {
@@ -119,12 +58,43 @@ func findLinkIDByTags(ctx context.Context, client *networkmanager.Client, global
 	return nil, integration.NewNotFoundError(integration.ResourceName(integration.NetworkManager, linkSrc))
 }
 
-func deleteLink(ctx context.Context, client *networkmanager.Client, globalNetworkID, linkID *string) error {
-	input := &networkmanager.DeleteLinkInput{
+func findDeviceIDByTags(ctx context.Context, client *networkmanager.Client, globalNetworkID, sideID *string, requiredTags []types.Tag) (*string, error) {
+	result, err := client.GetDevices(ctx, &networkmanager.GetDevicesInput{
 		GlobalNetworkId: globalNetworkID,
-		LinkId:          linkID,
+		SiteId:          sideID,
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	_, err := client.DeleteLink(ctx, input)
-	return err
+	for _, device := range result.Devices {
+		if hasTags(device.Tags, requiredTags) {
+			return device.DeviceId, nil
+		}
+	}
+
+	return nil, integration.NewNotFoundError(integration.ResourceName(integration.NetworkManager, deviceSrc))
+}
+
+func findLinkAssociation(ctx context.Context, client *networkmanager.Client, globalNetworkID, linkID, deviceID *string) (*string, error) {
+	result, err := client.GetLinkAssociations(ctx, &networkmanager.GetLinkAssociationsInput{
+		GlobalNetworkId: globalNetworkID,
+		LinkId:          linkID,
+		DeviceId:        deviceID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(result.LinkAssociations) != 1 {
+		if len(result.LinkAssociations) == 0 {
+			return nil, integration.NewNotFoundError(integration.ResourceName(integration.NetworkManager, linkAssociationSrc))
+		}
+
+		return nil, fmt.Errorf("expected 1 link association, got %d", len(result.LinkAssociations))
+	}
+
+	compositeKey := fmt.Sprintf("%s|%s|%s", *globalNetworkID, *linkID, *deviceID)
+
+	return &compositeKey, nil
 }

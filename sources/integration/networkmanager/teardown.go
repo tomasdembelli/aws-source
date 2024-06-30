@@ -43,6 +43,22 @@ func teardown(ctx context.Context, logger *slog.Logger, client *networkmanager.C
 		}
 	}
 
+	deviceID, err := findDeviceIDByTags(ctx, client, globalNetworkID, siteID, resourceTags(deviceSrc, integration.TestID()))
+	if err != nil {
+		nf := integration.NewNotFoundError(deviceSrc)
+		if errors.As(err, &nf) {
+			logger.WarnContext(ctx, "Device not found")
+			return nil
+		} else {
+			return err
+		}
+	}
+
+	err = deleteDevice(ctx, client, globalNetworkID, deviceID)
+	if err != nil {
+		return err
+	}
+
 	err = deleteLink(ctx, client, globalNetworkID, linkID)
 	if err != nil {
 		return err

@@ -410,8 +410,6 @@ func InitializeAwsSourceEngine(ctx context.Context, natsOptions auth.NATSOptions
 			networkmanager.NewConnectPeerSource(networkmanagerClient, *callerID.Account, region),
 			networkmanager.NewCoreNetworkPolicySource(networkmanagerClient, *callerID.Account, region),
 			networkmanager.NewCoreNetworkSource(networkmanagerClient, *callerID.Account, region),
-			networkmanager.NewDeviceSource(networkmanagerClient, *callerID.Account, region),
-			networkmanager.NewLinkAssociationSource(networkmanagerClient, *callerID.Account, region),
 			networkmanager.NewNetworkResourceRelationshipsSource(networkmanagerClient, *callerID.Account, region),
 			networkmanager.NewSiteToSiteVpnAttachmentSource(networkmanagerClient, *callerID.Account, region),
 			networkmanager.NewTransitGatewayConnectPeerAssociationSource(networkmanagerClient, *callerID.Account, region),
@@ -458,6 +456,8 @@ func InitializeAwsSourceEngine(ctx context.Context, natsOptions auth.NATSOptions
 				networkmanager.NewGlobalNetworkSource(networkmanagerClient, *callerID.Account),
 				networkmanager.NewSiteSource(networkmanagerClient, *callerID.Account),
 				networkmanager.NewLinkSource(networkmanagerClient, *callerID.Account),
+				networkmanager.NewDeviceSource(networkmanagerClient, *callerID.Account),
+				networkmanager.NewLinkAssociationSource(networkmanagerClient, *callerID.Account),
 			)
 			globalDone = true
 		}

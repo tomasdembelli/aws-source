@@ -3,6 +3,7 @@ package networkmanager
 import (
 	"context"
 	"fmt"
+
 	"github.com/aws/aws-sdk-go-v2/service/networkmanager"
 	"github.com/aws/aws-sdk-go-v2/service/networkmanager/types"
 	"github.com/overmindtech/aws-source/sources/integration"

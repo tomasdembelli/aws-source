@@ -32,13 +32,19 @@ func setup(ctx context.Context, logger *slog.Logger, networkmanagerClient *netwo
 	}
 
 	// Create a link in the global network for the site
-	_, err = createLink(ctx, logger, networkmanagerClient, testID, globalNetworkID, siteID)
+	linkID, err := createLink(ctx, logger, networkmanagerClient, testID, globalNetworkID, siteID)
 	if err != nil {
 		return err
 	}
 
 	// Create a device in the global network for the site
-	_, err = createDevice(ctx, logger, networkmanagerClient, testID, globalNetworkID, siteID)
+	deviceID, err := createDevice(ctx, logger, networkmanagerClient, testID, globalNetworkID, siteID)
+	if err != nil {
+		return err
+	}
+
+	// Create a link association in the global network for the device
+	err = createLinkAssociation(ctx, logger, networkmanagerClient, globalNetworkID, deviceID, linkID)
 	if err != nil {
 		return err
 	}

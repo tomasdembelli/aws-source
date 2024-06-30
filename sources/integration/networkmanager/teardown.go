@@ -54,6 +54,11 @@ func teardown(ctx context.Context, logger *slog.Logger, client *networkmanager.C
 		}
 	}
 
+	err = deleteLinkAssociation(ctx, client, globalNetworkID, deviceID, linkID)
+	if err != nil {
+		return err
+	}
+
 	err = deleteDevice(ctx, client, globalNetworkID, deviceID)
 	if err != nil {
 		return err

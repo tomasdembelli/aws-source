@@ -2,6 +2,7 @@ package networkmanager
 
 import (
 	"context"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/networkmanager"
 )
@@ -42,5 +43,16 @@ func deleteDevice(ctx context.Context, client *networkmanager.Client, globalNetw
 	}
 
 	_, err := client.DeleteDevice(ctx, input)
+	return err
+}
+
+func deleteLinkAssociation(ctx context.Context, client *networkmanager.Client, globalNetworkID, deviceID, linkID *string) error {
+	input := &networkmanager.DisassociateLinkInput{
+		GlobalNetworkId: globalNetworkID,
+		DeviceId:        deviceID,
+		LinkId:          linkID,
+	}
+
+	_, err := client.DisassociateLink(ctx, input)
 	return err
 }

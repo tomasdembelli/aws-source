@@ -3,12 +3,12 @@ package networkmanager
 import (
 	"context"
 	"errors"
-	"fmt"
+	"log/slog"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/networkmanager"
 	"github.com/aws/aws-sdk-go-v2/service/networkmanager/types"
 	"github.com/overmindtech/aws-source/sources/integration"
-	"log/slog"
 )
 
 func createGlobalNetwork(ctx context.Context, logger *slog.Logger, client *networkmanager.Client, testID string) (*string, error) {
@@ -139,20 +139,19 @@ func createDevice(ctx context.Context, logger *slog.Logger, client *networkmanag
 	return response.Device.DeviceId, nil
 }
 
-func createLinkAssociation(ctx context.Context, logger *slog.Logger, client *networkmanager.Client, globalNetworkID, deviceID, linkID *string) (*string, error) {
-
+func createLinkAssociation(ctx context.Context, logger *slog.Logger, client *networkmanager.Client, globalNetworkID, deviceID, linkID *string) error {
 	id, err := findLinkAssociation(ctx, client, globalNetworkID, linkID, deviceID)
 	if err != nil {
 		if errors.As(err, new(integration.NotFoundError)) {
 			logger.InfoContext(ctx, "Creating link association")
 		} else {
-			return nil, err
+			return err
 		}
 	}
 
 	if id != nil {
 		logger.InfoContext(ctx, "Link association already exists")
-		return id, nil
+		return nil
 	}
 
 	input := &networkmanager.AssociateLinkInput{
@@ -161,17 +160,10 @@ func createLinkAssociation(ctx context.Context, logger *slog.Logger, client *net
 		LinkId:          linkID,
 	}
 
-	response, err := client.AssociateLink(ctx, input)
+	_, err = client.AssociateLink(ctx, input)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	compositeLinkAssociationID := fmt.Sprintf(
-		"%s|%s|%s",
-		*response.LinkAssociation.GlobalNetworkId,
-		*response.LinkAssociation.LinkId,
-		*response.LinkAssociation.DeviceId,
-	)
-	return &compositeLinkAssociationID, nil
-
+	return nil
 }

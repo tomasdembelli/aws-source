@@ -7,6 +7,14 @@ import (
 )
 
 func TestIntegrationNetworkManager(t *testing.T) {
+	TestSetup(t)
+
+	TestNetworkManager(t)
+
+	TestTeardown(t)
+}
+
+func TestSetup(t *testing.T) {
 	ctx := context.Background()
 	logger := slog.Default()
 
@@ -15,20 +23,21 @@ func TestIntegrationNetworkManager(t *testing.T) {
 		t.Fatalf("Failed to create NetworkManager client: %v", err)
 	}
 
-	t.Run("Setup", func(t *testing.T) {
-		if err := setup(ctx, logger, networkmanagerClient); err != nil {
-			t.Fatalf("Failed to setup NetworkManager integration tests: %v", err)
-		}
-	})
+	if err := setup(ctx, logger, networkmanagerClient); err != nil {
+		t.Fatalf("Failed to setup NetworkManager integration tests: %v", err)
+	}
+}
 
-	t.Run("Test Network Manager", func(t *testing.T) {
-		t.Logf("Running NetworkManager integration tests")
-		TestNetworkManager(t)
-	})
+func TestTeardown(t *testing.T) {
+	ctx := context.Background()
+	logger := slog.Default()
 
-	t.Run("Teardown", func(t *testing.T) {
-		if err := teardown(ctx, logger, networkmanagerClient); err != nil {
-			t.Fatalf("Failed to teardown NetworkManager integration tests: %v", err)
-		}
-	})
+	networkmanagerClient, err := createNetworkManagerClient(ctx)
+	if err != nil {
+		t.Fatalf("Failed to create NetworkManager client: %v", err)
+	}
+
+	if err := teardown(ctx, logger, networkmanagerClient); err != nil {
+		t.Fatalf("Failed to teardown NetworkManager integration tests: %v", err)
+	}
 }

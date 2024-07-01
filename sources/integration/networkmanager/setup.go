@@ -15,6 +15,12 @@ const (
 	linkSrc            = "link"
 	deviceSrc          = "device"
 	linkAssociationSrc = "link-association"
+	connectionSrc      = "connection"
+)
+
+const (
+	deviceOneName = "device-1"
+	deviceTwoName = "device-2"
 )
 
 func setup(ctx context.Context, logger *slog.Logger, networkmanagerClient *networkmanager.Client) error {
@@ -38,13 +44,25 @@ func setup(ctx context.Context, logger *slog.Logger, networkmanagerClient *netwo
 	}
 
 	// Create a device in the global network for the site
-	deviceID, err := createDevice(ctx, logger, networkmanagerClient, testID, globalNetworkID, siteID)
+	deviceOneID, err := createDevice(ctx, logger, networkmanagerClient, testID, globalNetworkID, siteID, deviceOneName)
 	if err != nil {
 		return err
 	}
 
 	// Create a link association in the global network for the device
-	err = createLinkAssociation(ctx, logger, networkmanagerClient, globalNetworkID, deviceID, linkID)
+	err = createLinkAssociation(ctx, logger, networkmanagerClient, globalNetworkID, deviceOneID, linkID)
+	if err != nil {
+		return err
+	}
+
+	// Create another device in the global network for the site
+	deviceTwoID, err := createDevice(ctx, logger, networkmanagerClient, testID, globalNetworkID, siteID, deviceTwoName)
+	if err != nil {
+		return err
+	}
+
+	// Create a connection between the devices
+	err = createConnection(ctx, logger, networkmanagerClient, globalNetworkID, deviceOneID, deviceTwoID)
 	if err != nil {
 		return err
 	}

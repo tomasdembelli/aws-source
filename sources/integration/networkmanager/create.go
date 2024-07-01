@@ -108,20 +108,20 @@ func createLink(ctx context.Context, logger *slog.Logger, client *networkmanager
 	return response.Link.LinkId, nil
 }
 
-func createDevice(ctx context.Context, logger *slog.Logger, client *networkmanager.Client, testID string, globalNetworkID, siteID *string) (*string, error) {
-	tags := resourceTags(deviceSrc, testID)
+func createDevice(ctx context.Context, logger *slog.Logger, client *networkmanager.Client, testID string, globalNetworkID, siteID *string, deviceName string) (*string, error) {
+	tags := resourceTags(deviceSrc, testID, deviceName)
 
 	id, err := findDeviceIDByTags(ctx, client, globalNetworkID, siteID, tags)
 	if err != nil {
 		if errors.As(err, new(integration.NotFoundError)) {
-			logger.InfoContext(ctx, "Creating device")
+			logger.InfoContext(ctx, "Creating device", "name", deviceName)
 		} else {
 			return nil, err
 		}
 	}
 
 	if id != nil {
-		logger.InfoContext(ctx, "Device already exists")
+		logger.InfoContext(ctx, "Device already exists", "name", deviceName)
 		return id, nil
 	}
 
@@ -161,6 +161,35 @@ func createLinkAssociation(ctx context.Context, logger *slog.Logger, client *net
 	}
 
 	_, err = client.AssociateLink(ctx, input)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func createConnection(ctx context.Context, logger *slog.Logger, client *networkmanager.Client, globalNetworkID, deviceID, connectedDeviceID *string) error {
+	id, err := findConnectionID(ctx, client, globalNetworkID, deviceID)
+	if err != nil {
+		if errors.As(err, new(integration.NotFoundError)) {
+			logger.InfoContext(ctx, "Creating connection")
+		} else {
+			return err
+		}
+	}
+
+	if id != nil {
+		logger.InfoContext(ctx, "Connection already exists")
+		return nil
+	}
+
+	input := &networkmanager.CreateConnectionInput{
+		GlobalNetworkId:   globalNetworkID,
+		DeviceId:          deviceID,
+		ConnectedDeviceId: connectedDeviceID,
+	}
+
+	_, err = client.CreateConnection(ctx, input)
 	if err != nil {
 		return err
 	}

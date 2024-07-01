@@ -99,3 +99,23 @@ func findLinkAssociation(ctx context.Context, client *networkmanager.Client, glo
 
 	return &compositeKey, nil
 }
+
+func findConnectionID(ctx context.Context, client *networkmanager.Client, globalNetworkID, deviceID *string) (*string, error) {
+	result, err := client.GetConnections(ctx, &networkmanager.GetConnectionsInput{
+		GlobalNetworkId: globalNetworkID,
+		DeviceId:        deviceID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(result.Connections) != 1 {
+		if len(result.Connections) == 0 {
+			return nil, integration.NewNotFoundError(integration.ResourceName(integration.NetworkManager, connectionSrc))
+		}
+
+		return nil, fmt.Errorf("expected 1 connection, got %d", len(result.Connections))
+	}
+
+	return result.Connections[0].ConnectionId, nil
+}

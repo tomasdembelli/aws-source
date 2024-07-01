@@ -224,29 +224,32 @@ func TestNetworkManager(t *testing.T) {
 					deviceUniqueAttribute := sdpSearchDevices[0].GetUniqueAttribute()
 
 					// composite device id is in the format of: {globalNetworkID}|{deviceID}
-					compositeDeviceID, err := integration.GetUniqueAttributeValue(
+					compositeDeviceOneID, err := integration.GetUniqueAttributeValue(
 						deviceUniqueAttribute,
 						sdpSearchDevices,
-						integration.ResourceTags(integration.NetworkManager, deviceSrc),
+						integration.ResourceTags(integration.NetworkManager, deviceSrc, deviceOneName),
 					)
 					if err != nil {
 						t.Fatalf("failed to get device ID from search: %v", err)
 					}
 
 					// Get device: query format = globalNetworkID|deviceID
-					sdpGetDevice, err := deviceSource.Get(ctx, globalScope, compositeDeviceID, true)
+					sdpGetDevice, err := deviceSource.Get(ctx, globalScope, compositeDeviceOneID, true)
 					if err != nil {
 						t.Fatalf("failed to get device: %v", err)
 					}
 
-					deviceIDFromGet, err := integration.GetUniqueAttributeValue(
+					deviceOneIDFromGet, err := integration.GetUniqueAttributeValue(
 						deviceUniqueAttribute,
 						[]*sdp.Item{sdpGetDevice},
-						integration.ResourceTags(integration.NetworkManager, deviceSrc),
+						integration.ResourceTags(integration.NetworkManager, deviceSrc, deviceOneName),
 					)
+					if err != nil {
+						t.Fatalf("failed to get device ID from get: %v", err)
+					}
 
-					if compositeDeviceID != deviceIDFromGet {
-						t.Fatalf("expected device ID %s, got %s", compositeDeviceID, deviceIDFromGet)
+					if compositeDeviceOneID != deviceOneIDFromGet {
+						t.Fatalf("expected device ID %s, got %s", compositeDeviceOneID, deviceOneIDFromGet)
 					}
 
 					t.Run("Link Association", func(t *testing.T) {

@@ -2,6 +2,11 @@ package networkmanager
 
 import (
 	"context"
+	"errors"
+
+	"github.com/aws/aws-sdk-go-v2/service/networkmanager/types"
+	"github.com/aws/smithy-go"
+	"github.com/overmindtech/aws-source/sources/integration"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/networkmanager"
@@ -13,7 +18,18 @@ func deleteGlobalNetwork(ctx context.Context, client *networkmanager.Client, glo
 	}
 
 	_, err := client.DeleteGlobalNetwork(ctx, input)
-	return err
+	// Ignore not found errors
+	if err != nil {
+		var apiErr smithy.APIError
+		notFoundException := types.ResourceNotFoundException{}
+		if errors.As(err, &apiErr) && apiErr.ErrorCode() == notFoundException.ErrorCode() {
+			return integration.NewNotFoundError(integration.ResourceName(integration.NetworkManager, globalNetworkSrc))
+		} else {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func deleteSite(ctx context.Context, client *networkmanager.Client, globalNetworkID, siteID *string) error {
@@ -23,7 +39,18 @@ func deleteSite(ctx context.Context, client *networkmanager.Client, globalNetwor
 	}
 
 	_, err := client.DeleteSite(ctx, input)
-	return err
+	// Ignore not found errors
+	if err != nil {
+		var apiErr smithy.APIError
+		notFoundException := types.ResourceNotFoundException{}
+		if errors.As(err, &apiErr) && apiErr.ErrorCode() == notFoundException.ErrorCode() {
+			return integration.NewNotFoundError(integration.ResourceName(integration.NetworkManager, siteSrc))
+		} else {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func deleteLink(ctx context.Context, client *networkmanager.Client, globalNetworkID, linkID *string) error {
@@ -33,7 +60,18 @@ func deleteLink(ctx context.Context, client *networkmanager.Client, globalNetwor
 	}
 
 	_, err := client.DeleteLink(ctx, input)
-	return err
+	// Ignore not found errors
+	if err != nil {
+		var apiErr smithy.APIError
+		notFoundException := types.ResourceNotFoundException{}
+		if errors.As(err, &apiErr) && apiErr.ErrorCode() == notFoundException.ErrorCode() {
+			return integration.NewNotFoundError(integration.ResourceName(integration.NetworkManager, linkSrc))
+		} else {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func deleteDevice(ctx context.Context, client *networkmanager.Client, globalNetworkID, deviceID *string) error {
@@ -43,7 +81,19 @@ func deleteDevice(ctx context.Context, client *networkmanager.Client, globalNetw
 	}
 
 	_, err := client.DeleteDevice(ctx, input)
-	return err
+	// Ignore not found errors
+	if err != nil {
+		var apiErr smithy.APIError
+		notFoundException := types.ResourceNotFoundException{}
+		if errors.As(err, &apiErr) && apiErr.ErrorCode() == notFoundException.ErrorCode() {
+			return integration.NewNotFoundError(integration.ResourceName(integration.NetworkManager, deviceSrc))
+		} else {
+			return err
+		}
+
+	}
+
+	return nil
 }
 
 func deleteLinkAssociation(ctx context.Context, client *networkmanager.Client, globalNetworkID, deviceID, linkID *string) error {
@@ -54,5 +104,38 @@ func deleteLinkAssociation(ctx context.Context, client *networkmanager.Client, g
 	}
 
 	_, err := client.DisassociateLink(ctx, input)
-	return err
+	// Ignore not found errors
+	if err != nil {
+		var apiErr smithy.APIError
+		notFoundException := types.ResourceNotFoundException{}
+		if errors.As(err, &apiErr) && apiErr.ErrorCode() == notFoundException.ErrorCode() {
+			return integration.NewNotFoundError(integration.ResourceName(integration.NetworkManager, linkAssociationSrc))
+		} else {
+			return err
+		}
+
+	}
+
+	return nil
+}
+
+func deleteConnection(ctx context.Context, client *networkmanager.Client, globalNetworkID, connectionID *string) error {
+	input := &networkmanager.DeleteConnectionInput{
+		GlobalNetworkId: globalNetworkID,
+		ConnectionId:    connectionID,
+	}
+
+	_, err := client.DeleteConnection(ctx, input)
+	// Ignore not found errors
+	if err != nil {
+		var apiErr smithy.APIError
+		notFoundException := types.ResourceNotFoundException{}
+		if errors.As(err, &apiErr) && apiErr.ErrorCode() == notFoundException.ErrorCode() {
+			return integration.NewNotFoundError(integration.ResourceName(integration.NetworkManager, connectionSrc))
+		} else {
+			return err
+		}
+	}
+
+	return nil
 }

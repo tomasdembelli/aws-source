@@ -12,7 +12,10 @@ import (
 )
 
 // GetListSource A source for AWS APIs where the Get and List functions both
-// return the full item, such as many of the IAM APIs
+// return the full item, such as many of the IAM APIs. A good example for this is the `cloudfront-key-group` source.
+// There are two different functions for getting an individual resource and another for listing all resources.
+// The important differentiator from the AlwaysGetSource is that the List function returns complete items,
+// so we don't need to call the Get function for getting the full item.
 type GetListSource[AWSItem AWSItemType, ClientStruct ClientStructType, Options OptionsType] struct {
 	ItemType               string       // The type of items that will be returned
 	Client                 ClientStruct // The AWS API client

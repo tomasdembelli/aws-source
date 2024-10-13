@@ -62,7 +62,7 @@ This source requires the following IAM Policy
 
 Types are named to match the `describe-*`, `get-*` or `list-*` command within the AWS CLI, with the service that they are part of as a prefix. For example to get the details if a security group you would run:
 
-````bash
+```bash
 aws ec2 describe-security-groups
 ```
 
